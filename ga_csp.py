@@ -95,37 +95,48 @@ def random_csp(stocks, stock_price, order_len, order_q, time_limit):
 # solution = random_solution(order_len,order_q, len(stocks))
 # activity_test = solution_to_activities(solution, stocks,stock_price, order_len, order_q )
 
-dict1 = {50: [30, 20, 20, 20, 20, 20], 80: [30, 25, 25, 25, 25], 100: [30, 30, 30, 25, 25, 25]}
+dict1 = {50: [30, 20, 20, 20, 20, 20], 80: [30,30,30,25,25,25,25,20,20], 100: [30, 30, 30, 25, 25, 25]}
 print(dict1)
 dict2 = {}
 for stock in stocks:
     # print(dict1[stock])
     orders = dict1[stock]
     activities = [[]]
+    index = 0
     while len(orders) > 0:
-        for index, order in enumerate(orders):
-            # If the current order len + last activity's sum is exactly equal to stock then 
-            # it means that I should stop iterating thorugh the orders to check for another order len to add.
-            # It also means that I can add en empty activity so that next iteration I don't have to check that same activity again.
-            if sum(activities[-1]) + order == stock:
-                activities[-1].append(order)
-                orders.remove(order)
-                activity = []
-                activities.append(activity)
-                continue
-            # I know that current order + sum of last activity is not equal to stock length, so check if it's
-            # less thank stock length, this means that more orders can be added.
-            if sum(activities[-1]) + order < stock:
-                activities[-1].append(order)
-                orders.remove(order)
+        order = orders[index]
+        # If the current order len + last activity's sum is exactly equal to stock then 
+        # it means that I should stop iterating thorugh the orders to check for another order len to add.
+        # It also means that I can add en empty activity so that next iteration I don't have to check that same activity again.
+        if sum(activities[-1]) + order == stock:
+            activities[-1].append(order)
+            orders.remove(order)
+            activity = []
+            activities.append(activity)
+            index = 0
+            continue
+        # I know that current order + sum of last activity is not equal to stock length, so check if it's
+        # less thank stock length, this means that more orders can be added.
+        if sum(activities[-1]) + order < stock:
+            activities[-1].append(order)
+            orders.remove(order)
+            index = 0
+            continue
+        # The current order len doesn't add up to exactly the stock len and goes over the stock length if added to activity
+        else: # sum of last activity + order > stock
+            # Continue checking next order len if there's still orders left that maybe could fit until the end of the list
+            if index != (len(orders)-1):
+                index += 1
+                continue # This doens't work because it doesn't add the original order to a new activity but the one on the current iteration. I need to find a way to remember what the original length was 
             else:
-                if index != (len(orders)-1):
-                    continue # This doens't work because it doesn't add the original order to a new activity but the one on the current iteration. I need to find a way to remember what the original length was 
-                else:
-                    activity = [order]
-                    orders.remove(order)
-                    activities.append(activity)
-        dict2[stock] = activities
+                activity = [orders[0]]
+                orders.remove(order)
+                activities.append(activity)
+                index = 0
+                continue
+        
+    dict2[stock] = activities
+
 print(dict2)
             
 
