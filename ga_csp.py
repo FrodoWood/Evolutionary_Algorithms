@@ -102,14 +102,30 @@ for stock in stocks:
     # print(dict1[stock])
     orders = dict1[stock]
     activities = [[]]
-    for order in orders:
-        if sum(activities[-1]) + order <= stock:
-            activities[-1].append(order)
-        else:
-            activity = [order]
-            activities.append(activity)
-    # print(activities)
-    dict2[stock] = activities
+    while len(orders) > 0:
+        for index, order in enumerate(orders):
+            # If the current order len + last activity's sum is exactly equal to stock then 
+            # it means that I should stop iterating thorugh the orders to check for another order len to add.
+            # It also means that I can add en empty activity so that next iteration I don't have to check that same activity again.
+            if sum(activities[-1]) + order == stock:
+                activities[-1].append(order)
+                orders.remove(order)
+                activity = []
+                activities.append(activity)
+                continue
+            # I know that current order + sum of last activity is not equal to stock length, so check if it's
+            # less thank stock length, this means that more orders can be added.
+            if sum(activities[-1]) + order < stock:
+                activities[-1].append(order)
+                orders.remove(order)
+            else:
+                if index != (len(orders)-1):
+                    continue # This doens't work because it doesn't add the original order to a new activity but the one on the current iteration. I need to find a way to remember what the original length was 
+                else:
+                    activity = [order]
+                    orders.remove(order)
+                    activities.append(activity)
+        dict2[stock] = activities
 print(dict2)
             
 
