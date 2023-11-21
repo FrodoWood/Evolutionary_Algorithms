@@ -40,7 +40,7 @@ def random_solution(order_lengths, order_q, n_stocks):
         solution[index] = activity
     return solution
             
-def evaluate_csp(solution, stocks, stock_price, order_len):
+def evaluate_csp_old(solution, stocks, stock_price, order_len):
     sol_by_stock_len = np.transpose(solution)
     cost = np.zeros(shape= sol_by_stock_len.shape[0])
     for index, stock_len in enumerate(sol_by_stock_len):
@@ -50,6 +50,18 @@ def evaluate_csp(solution, stocks, stock_price, order_len):
         total_stock_len_price = math.ceil(sum(total_stock_order) / stocks[index]) * stock_price[index]
         cost[index] = total_stock_len_price
     return sum(cost)
+
+def evaluate_csp(activities_all, stocks, stock_price, order_len):
+    # activities
+    # for each stock get the value from activities using stock as key such as activities.get(stocks[0]) -> activities for L50
+    # len of activities list for each stock is the number of stock lengths needed, multiply that by cost to get total cost for each stock
+    # add up all the costs
+    cost = 0
+    for stock, price in zip(stocks, stock_price):
+        activities = activities_all[stock]
+        cost += len(activities) * price
+
+    return cost
 
 def solution_to_activities(solution, stocks, stock_price, order_len, order_q):
     sol = np.transpose(solution).astype(int)
@@ -61,7 +73,7 @@ def solution_to_activities(solution, stocks, stock_price, order_len, order_q):
         my_list.reverse()
         dict1[stock] = my_list
     
-    print(dict1, '\n')
+    # print(dict1, '\n')
     dict2 = {}
 
     for stock in stocks:
@@ -104,9 +116,8 @@ def solution_to_activities(solution, stocks, stock_price, order_len, order_q):
                     index = 0
                     continue
         dict2[stock] = activities
-    print(dict2)
-
-
+    # print(dict2)
+    return dict2
 
 def random_csp(stocks, stock_price, order_len, order_q, time_limit):
     end_time = time.time() + time_limit
@@ -137,7 +148,11 @@ def random_csp(stocks, stock_price, order_len, order_q, time_limit):
 #region Testing
 # random.seed(1)
 solution = random_solution(order_len,order_q, len(stocks))
-activity_test = solution_to_activities(solution, stocks,stock_price, order_len, order_q )
+activities = solution_to_activities(solution, stocks,stock_price, order_len, order_q )
+cost = evaluate_csp(activities, stocks, stock_price, order_len)
+print(solution)
+print(activities)
+print(cost)
 
 # dict1 = {50: [30, 20, 20, 20, 20, 20], 80: [30,30,30,25,25,25,25,20,20], 100: [30, 30, 30, 25, 25, 25]}
 # # print(dict1)
