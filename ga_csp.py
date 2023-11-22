@@ -56,11 +56,11 @@ def evaluate_csp(activities_all, stocks, stock_price, order_len):
     # for each stock get the value from activities using stock as key such as activities.get(stocks[0]) -> activities for L50
     # len of activities list for each stock is the number of stock lengths needed, multiply that by cost to get total cost for each stock
     # add up all the costs
+    stock_price_dict = dict(zip(stocks, stock_price))
     cost = 0
-    for stock, price in zip(stocks, stock_price):
-        activities = activities_all[stock]
-        cost += len(activities) * price
-
+    for key in activities_all:
+        activities = activities_all[key]
+        cost += len(activities) * stock_price_dict[key]
     return cost
 
 def solution_to_activities(solution, stocks, stock_price, order_len, order_q):
@@ -124,13 +124,18 @@ def random_csp(stocks, stock_price, order_len, order_q, time_limit):
     best_sol = []
     best_sol_cost = float('inf')
     iterations = 0
-    while time.time() < end_time:
-        sol = random_solution(order_len,order_q, len(stocks))      
-        sol_cost = evaluate_csp(sol, stocks, stock_price, order_len)
+    while time.time() < end_time: 
+        # Old evaluate csp based cost calculation
+        # solution = random_solution(order_len,order_q, len(stocks))      
+        # cost = evaluate_csp_old(solution, stocks, stock_price, order_len)
+        
+        solution = random_solution(order_len,order_q, len(stocks))
+        activities = solution_to_activities(solution, stocks,stock_price, order_len, order_q )
+        cost = evaluate_csp(activities, stocks, stock_price, order_len)
         # If the cost is lower than best cost then make s1 the best sol
-        if(sol_cost < best_sol_cost):
-            best_sol = sol
-            best_sol_cost = sol_cost
+        if(cost < best_sol_cost):
+            best_sol = solution
+            best_sol_cost = cost
         iterations += 1
     print(f'Iterations : {iterations}')
     return best_sol, best_sol_cost
@@ -139,20 +144,57 @@ def random_csp(stocks, stock_price, order_len, order_q, time_limit):
 # test = random_csp(stocks, stock_price, order_len, order_q, 2)
 # print(f'Cost: {test[1]}')
 
-# test = random_solution(order_len,order_q,len(stocks))
-# print(test)
+# sol = random_solution(order_len,order_q,len(stocks))
+# print(sol)
+
+# make mutation
+# 
+row = np.array([0,0,7,0,2,3,0,0,1])
+q = 5
+# Pick an operation to perform on a random element such as +4, no need to include negative elements since the same valued be 
+# subtracted from another element
+# operations = np.arange(1,row.max()+1) 
+# operation = np.random.choice(operations)
+# # print(operations)
+# print(f'Operation to perform: +{operation}')
+
+indeces = np.arange(0,len(row))
+# indeces = np.arange(3)
+# valid_pick = False
+# while not valid_pick:
+#     i = np.random.choice(indeces)
+#     if row[i] != 0: valid_pick = True
+
+i = np.random.choice(indeces)
+# print(indeces)
+print(f'index of element getting incremented: {i}')
+# print(f'indeces before removal: {indeces}')
+# Increasing random element by 1
+row[i] += 1
+
+# Decreasing random element by 1
+indeces = np.where((row > 0) & (indeces != i))[0]
+# indeces = np.delete(indeces, np.where(indeces == i)) # the index whose value is equal to i, simply writing i produces errors since the index might not match with the value
+# print(f'Indeces to choose from to decrease by 1: {indeces}')
+i = np.random.choice(indeces)
+print(f'index of element getting decremented: {i}')
+row[i] -= 1
+print(f'Row after mutation: {row}')
+
+# make crossover
+# make parent selection
 
 
 
 
 #region Testing
 # random.seed(1)
-solution = random_solution(order_len,order_q, len(stocks))
-activities = solution_to_activities(solution, stocks,stock_price, order_len, order_q )
-cost = evaluate_csp(activities, stocks, stock_price, order_len)
-print(solution)
-print(activities)
-print(cost)
+# solution = random_solution(order_len,order_q, len(stocks))
+# activities = solution_to_activities(solution, stocks,stock_price, order_len, order_q )
+# cost = evaluate_csp(activities, stocks, stock_price, order_len)
+# print(solution)
+# print(activities)
+# print(cost)
 
 # dict1 = {50: [30, 20, 20, 20, 20, 20], 80: [30,30,30,25,25,25,25,20,20], 100: [30, 30, 30, 25, 25, 25]}
 # # print(dict1)
