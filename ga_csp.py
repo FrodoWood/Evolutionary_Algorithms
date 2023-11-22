@@ -140,6 +140,12 @@ def random_csp(stocks, stock_price, order_len, order_q, time_limit):
     print(f'Iterations : {iterations}')
     return best_sol, best_sol_cost
 
+def generate_random_population(size, stocks, order_len, order_q):
+    population = []
+    for _ in range(size):
+        population.append(random_solution(order_len,order_q,len(stocks)))
+    return np.array(population)
+
 def mutation(solution):
     solution = np.array(solution)
     for row in solution:
@@ -156,6 +162,12 @@ def mutation(solution):
         row[j] += 1
     return solution
 
+def tournament_selection(popoulation, pop_size):
+    
+    
+    print('test')
+
+
 
 #region Testing
 
@@ -164,6 +176,10 @@ def mutation(solution):
 
 # sol = random_solution(order_len,order_q,len(stocks))
 # print(sol)
+
+# population = generate_random_population(10, stocks, order_len, order_q)
+# print(population)
+
 # mutated = mutation(sol)
 # print(mutated)
 # make Mutation
