@@ -140,54 +140,72 @@ def random_csp(stocks, stock_price, order_len, order_q, time_limit):
     print(f'Iterations : {iterations}')
     return best_sol, best_sol_cost
 
+def mutation(solution):
+    solution = np.array(solution)
+    for row in solution:
+        # Decreasing random positive element by 1
+        indeces = np.where((row > 0))[0]
+        i = np.random.choice(indeces)
+        print(f'index of element getting decremented: {i}')
+        row[i] -= 1
+
+        # Increasing random element that is not i by 1
+        indeces = np.where((row != row[i]))[0]
+        j = np.random.choice(indeces)
+        print(f'index of element getting incremented: {j}\n')
+        row[j] += 1
+    return solution
+
+
+#region Testing
 
 # test = random_csp(stocks, stock_price, order_len, order_q, 2)
 # print(f'Cost: {test[1]}')
 
 # sol = random_solution(order_len,order_q,len(stocks))
 # print(sol)
+# mutated = mutation(sol)
+# print(mutated)
+# make Mutation
+# row = np.array([0,0,7,0,2,3,0,0,1])
+# print(f'Row before mutation:{row}')
+# q = 5
+# # Pick an operation to perform on a random element such as +4, no need to include negative elements since the same valued be 
+# # subtracted from another element
+# # operations = np.arange(1,row.max()+1) 
+# # operation = np.random.choice(operations)
+# # # print(operations)
+# # print(f'Operation to perform: +{operation}')
 
-# make mutation
-# 
-row = np.array([0,0,7,0,2,3,0,0,1])
-q = 5
-# Pick an operation to perform on a random element such as +4, no need to include negative elements since the same valued be 
-# subtracted from another element
-# operations = np.arange(1,row.max()+1) 
-# operation = np.random.choice(operations)
-# # print(operations)
-# print(f'Operation to perform: +{operation}')
+# indeces = np.arange(0,len(row))
+# # indeces = np.arange(3)
+# # valid_pick = False
+# # while not valid_pick:
+# #     i = np.random.choice(indeces)
+# #     if row[i] != 0: valid_pick = True
 
-indeces = np.arange(0,len(row))
-# indeces = np.arange(3)
-# valid_pick = False
-# while not valid_pick:
-#     i = np.random.choice(indeces)
-#     if row[i] != 0: valid_pick = True
+# i = np.random.choice(indeces)
+# # print(indeces)
+# print(f'index of element getting incremented: {i}')
+# # print(f'indeces before removal: {indeces}')
+# # Increasing random element by 1
+# row[i] += 1
 
-i = np.random.choice(indeces)
-# print(indeces)
-print(f'index of element getting incremented: {i}')
-# print(f'indeces before removal: {indeces}')
-# Increasing random element by 1
-row[i] += 1
-
-# Decreasing random element by 1
-indeces = np.where((row > 0) & (indeces != i))[0]
-# indeces = np.delete(indeces, np.where(indeces == i)) # the index whose value is equal to i, simply writing i produces errors since the index might not match with the value
-# print(f'Indeces to choose from to decrease by 1: {indeces}')
-i = np.random.choice(indeces)
-print(f'index of element getting decremented: {i}')
-row[i] -= 1
-print(f'Row after mutation: {row}')
+# # Decreasing random element by 1
+# indeces = np.where((row > 0) & (indeces != i))[0]
+# # indeces = np.delete(indeces, np.where(indeces == i)) # the index whose value is equal to i, simply writing i produces errors since the index might not match with the value
+# # print(f'Indeces to choose from to decrease by 1: {indeces}')
+# i = np.random.choice(indeces)
+# print(f'index of element getting decremented: {i}')
+# row[i] -= 1
+# print(f'Row after mutation: {row}')
 
 # make crossover
+
 # make parent selection
 
+#####################
 
-
-
-#region Testing
 # random.seed(1)
 # solution = random_solution(order_len,order_q, len(stocks))
 # activities = solution_to_activities(solution, stocks,stock_price, order_len, order_q )
