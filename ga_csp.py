@@ -131,12 +131,13 @@ def random_csp(stocks, stock_price, order_len, order_q, time_limit):
         # cost = evaluate_csp_old(solution, stocks, stock_price, order_len)
         
         solution = random_solution(order_len,order_q, len(stocks))
-        activities = solution_to_activities(solution, stocks,stock_price, order_len, order_q )
-        cost = evaluate_csp(activities, stocks, stock_price, order_len)
+        # activities = solution_to_activities(solution, stocks,stock_price, order_len, order_q )
+        cost = evaluate_csp(solution, stocks, stock_price, order_len, order_q)
         # If the cost is lower than best cost then make s1 the best sol
         if(cost < best_sol_cost):
             best_sol = solution
             best_sol_cost = cost
+            print(f'New best found: {best_sol_cost}')
         iterations += 1
     print(f'Iterations : {iterations}')
     return best_sol, best_sol_cost
@@ -193,6 +194,7 @@ def ga_csp_base(mutation_prob, stocks, stock_price, order_len, order_q, time_lim
     population = generate_random_population(100, stocks, order_len, order_q)
     best = []
     best_cost = float('inf')
+    generations = 0
     end_time = time.time() + time_limit
     while time.time() < end_time:
         parents = tournament_selection(2,population, 100,stocks, stock_price, order_len, order_q)
@@ -206,6 +208,7 @@ def ga_csp_base(mutation_prob, stocks, stock_price, order_len, order_q, time_lim
                 mutated_child = parent
             mutated_children.append(mutated_child)
             cost_children.append(evaluate_csp(mutated_child,stocks, stock_price, order_len, order_q ))
+        generations += 1
         
 
         best_child = min(zip(mutated_children,cost_children), key= lambda x: x[1]) # Tuple of participant and cost
@@ -214,12 +217,14 @@ def ga_csp_base(mutation_prob, stocks, stock_price, order_len, order_q, time_lim
             best = best_child[0]
             best_cost = best_child[1]
             print(f'new best found: {best_cost}')
+    print(f'Generations: {generations}')
     return best, best_cost
 
 
 #region Testing
 
-best, best_cost = ga_csp_base(0.6, stocks, stock_price, order_len, order_q, 20)
+# best, best_cost = ga_csp_base(0.6, stocks, stock_price, order_len, order_q, 3)
+best, best_cost = random_csp(stocks, stock_price, order_len, order_q, 3)
 print(best)
 print(best_cost)
 # test = random_csp(stocks, stock_price, order_len, order_q, 2)
