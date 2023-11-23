@@ -4,20 +4,20 @@ import time
 import copy
 import math
 
-# stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
-# stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
-# order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
-# order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
+stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
+stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
+order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
+order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
 
 # stocks = [10,13,15]
 # stock_price = [100,130,150]
 # order_len = [3,4,5,6,7,8,9,10]
 # order_q = [5,2,1,2,4,2,1,3]
 
-stocks = [50,80,100]
-stock_price = [100,175,250]
-order_len = [20,25,30]
-order_q = [5,7,5]
+# stocks = [50,80,100]
+# stock_price = [100,175,250]
+# order_len = [20,25,30]
+# order_q = [5,7,5]
 
 
 
@@ -51,8 +51,9 @@ def evaluate_csp_old(solution, stocks, stock_price, order_len):
         cost[index] = total_stock_len_price
     return sum(cost)
 
-def evaluate_csp(activities_all, stocks, stock_price, order_len):
+def evaluate_csp(solution, stocks, stock_price, order_len, order_q):
     # activities
+    activities_all = solution_to_activities(solution, stocks, stock_price,order_len,order_q)
     # for each stock get the value from activities using stock as key such as activities.get(stocks[0]) -> activities for L50
     # len of activities list for each stock is the number of stock lengths needed, multiply that by cost to get total cost for each stock
     # add up all the costs
@@ -140,6 +141,12 @@ def random_csp(stocks, stock_price, order_len, order_q, time_limit):
     print(f'Iterations : {iterations}')
     return best_sol, best_sol_cost
 
+def best_solution(population, stocks, stock_price, order_len, order_q):
+    cost = []
+    for person in population:
+        cost.append(evaluate_csp(person, stocks, stock_price, order_len, order_q))
+
+
 def generate_random_population(size, stocks, order_len, order_q):
     population = []
     for _ in range(size):
@@ -150,27 +157,71 @@ def mutation(solution):
     solution = np.array(solution)
     for row in solution:
         # Decreasing random positive element by 1
-        indeces = np.where((row > 0))[0]
+        indeces = np.where(row > -1)[0]
         i = np.random.choice(indeces)
-        print(f'index of element getting decremented: {i}')
-        row[i] -= 1
+        # print(f'index of element getting decremented: {i}')
+        random_n = random.randint(0,7)
+        row[i] += random_n
 
         # Increasing random element that is not i by 1
-        indeces = np.where((row != row[i]))[0]
-        j = np.random.choice(indeces)
-        print(f'index of element getting incremented: {j}\n')
-        row[j] += 1
+        indeces = np.where(row >= random_n)[0]
+        if len(indeces) > 0:
+            i = np.random.choice(indeces)
+            # print(f'index of element getting incremented: {i}\n')
+        else: print('fsfkasjkdfjskdfjksdjfkj')
+        row[i] -= random_n
     return solution
 
-def tournament_selection(popoulation, pop_size):
-    
-    
-    print('test')
+def tournament_selection(tournament_size, population, pop_size, stocks, stock_price, order_len, order_q):
+    new_pop = []
+    while len(new_pop) < pop_size:
+        participants = []
+        cost = []
+        for i in range(tournament_size):
+            participant = population[random.randint(0,len(population)-1)]
+            participants.append(participant)
+            cost.append(evaluate_csp(participant,stocks, stock_price, order_len, order_q))
+        best = min(zip(participants,cost), key= lambda x: x[1]) # Tuple of participant and cost
+        new_pop.append(best[0]) # Adding only the participant to the population
+    return np.array(new_pop)
 
+def ga_csp_base(mutation_prob, stocks, stock_price, order_len, order_q, time_limit):
+    # 1 generate random population
+    # 2 select parents
+    # 3 apply mutation
+    # ---repeat
+    population = generate_random_population(100, stocks, order_len, order_q)
+    best = []
+    best_cost = float('inf')
+    end_time = time.time() + time_limit
+    while time.time() < end_time:
+        parents = tournament_selection(2,population, 100,stocks, stock_price, order_len, order_q)
+        mutated_children = []
+        cost_children = []
+        for parent in parents:
+            n = random.random()
+            if n < mutation_prob:
+                mutated_child = mutation(parent)
+            else: 
+                mutated_child = parent
+            mutated_children.append(mutated_child)
+            cost_children.append(evaluate_csp(mutated_child,stocks, stock_price, order_len, order_q ))
+        
+
+        best_child = min(zip(mutated_children,cost_children), key= lambda x: x[1]) # Tuple of participant and cost
+        # if the best cost in this batch of children is better than global best -> set global best as best
+        if best_child[1] < best_cost:
+            best = best_child[0]
+            best_cost = best_child[1]
+            print(f'new best found: {best_cost}')
+    return best, best_cost
 
 
 #region Testing
 
+best, best_cost = ga_csp_base(0.6, stocks, stock_price, order_len, order_q, 20)
+print(best)
+print(best_cost)
 # test = random_csp(stocks, stock_price, order_len, order_q, 2)
 # print(f'Cost: {test[1]}')
 
@@ -179,6 +230,9 @@ def tournament_selection(popoulation, pop_size):
 
 # population = generate_random_population(10, stocks, order_len, order_q)
 # print(population)
+# new_population = tournament_selection(2,population, 3,stocks, stock_price, order_len, order_q)
+# print('New pop')
+# print(new_population)
 
 # mutated = mutation(sol)
 # print(mutated)
