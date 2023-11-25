@@ -161,7 +161,12 @@ def mutation(solution):
         indeces = np.where(row > -1)[0]
         i = np.random.choice(indeces)
         # print(f'index of element getting decremented: {i}')
-        random_n = random.randint(0,7)
+        prob = 1
+        r = random.random()
+        if r < prob:
+            random_n = random.randint(1,max(order_q))
+        else:
+            random_n = 1
         row[i] += random_n
 
         # Increasing random element that is not i by 1
@@ -186,18 +191,20 @@ def tournament_selection(tournament_size, population, pop_size, stocks, stock_pr
         new_pop.append(best[0]) # Adding only the participant to the population
     return np.array(new_pop)
 
-def ga_csp_base(mutation_prob, stocks, stock_price, order_len, order_q, time_limit):
+def ga_csp_base(pop_size, mutation_prob, stocks, stock_price, order_len, order_q, time_limit):
     # 1 generate random population
     # 2 select parents
     # 3 apply mutation
     # ---repeat
-    population = generate_random_population(100, stocks, order_len, order_q)
+    population = generate_random_population(pop_size, stocks, order_len, order_q)
     best = []
     best_cost = float('inf')
     generations = 0
+    start_time = time.time()
     end_time = time.time() + time_limit
     while time.time() < end_time:
-        parents = tournament_selection(2,population, 100,stocks, stock_price, order_len, order_q)
+        mutation_prob = random.uniform(0.1,0.9)
+        parents = tournament_selection(2,population, pop_size,stocks, stock_price, order_len, order_q)
         mutated_children = []
         cost_children = []
         for parent in parents:
@@ -216,17 +223,22 @@ def ga_csp_base(mutation_prob, stocks, stock_price, order_len, order_q, time_lim
         if best_child[1] < best_cost:
             best = best_child[0]
             best_cost = best_child[1]
-            print(f'new best found: {best_cost}')
+            print(f'new best found at time {round(time.time() - start_time)}: {best_cost}')
+
+        population = mutated_children
+        population.append(best) # ELITISM
+
     print(f'Generations: {generations}')
     return best, best_cost
 
 
-#region Testing
-
-# best, best_cost = ga_csp_base(0.6, stocks, stock_price, order_len, order_q, 3)
-best, best_cost = random_csp(stocks, stock_price, order_len, order_q, 3)
+best, best_cost = ga_csp_base(15, 0.4, stocks, stock_price, order_len, order_q, 360)
 print(best)
 print(best_cost)
+
+#region Testing
+
+# best, best_cost = random_csp(stocks, stock_price, order_len, order_q, 30)
 # test = random_csp(stocks, stock_price, order_len, order_q, 2)
 # print(f'Cost: {test[1]}')
 
@@ -358,3 +370,10 @@ print(best_cost)
 # print(f'Stock times order len: {total_stock_order}')
 # print(f'Total stock price for L-50: {total_stock_len_l50_price}')
 #endregion
+
+#region Best Results
+# Problem 1: 4460
+# Problem 1: 4426
+# Problem 1: 4440 Reached local maxima at time 34s in a run of 360s
+#endregion
+
