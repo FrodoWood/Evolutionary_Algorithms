@@ -203,8 +203,45 @@ def ga_csp_base(pop_size, mutation_prob, stocks, stock_price, order_len, order_q
     start_time = time.time()
     end_time = time.time() + time_limit
     while time.time() < end_time:
-        mutation_prob = random.uniform(0.1,0.9)
-        parents = tournament_selection(2,population, pop_size,stocks, stock_price, order_len, order_q)
+        parents = tournament_selection(3,population, pop_size,stocks, stock_price, order_len, order_q)
+        mutated_children = []
+        cost_children = []
+        for parent in parents:
+            n = random.random()
+            if n < mutation_prob:
+                mutated_child = mutation(parent)
+            else: 
+                mutated_child = parent
+            mutated_children.append(mutated_child)
+            cost_children.append(evaluate_csp(mutated_child,stocks, stock_price, order_len, order_q ))
+        generations += 1
+
+        best_child = min(zip(mutated_children,cost_children), key= lambda x: x[1]) # Tuple of participant and cost
+        # if the best cost in this batch of children is better than global best -> set global best as best
+        if best_child[1] < best_cost:
+            best = best_child[0]
+            best_cost = best_child[1]
+            print(f'new best found at time {round(time.time() - start_time)}: {best_cost}')
+
+        population = mutated_children
+        # population.append(best) # ELITISM
+
+    print(f'Generations: {generations}')
+    return best, best_cost
+
+def ga_csp_novel(pop_size, mutation_prob, stocks, stock_price, order_len, order_q, time_limit):
+    # 1 generate random population
+    # 2 select parents
+    # 3 apply mutation
+    # ---repeat
+    population = generate_random_population(pop_size, stocks, order_len, order_q)
+    best = []
+    best_cost = float('inf')
+    generations = 0
+    start_time = time.time()
+    end_time = time.time() + time_limit
+    while time.time() < end_time:
+        parents = tournament_selection(3,population, pop_size,stocks, stock_price, order_len, order_q)
         mutated_children = []
         cost_children = []
         for parent in parents:
@@ -217,7 +254,6 @@ def ga_csp_base(pop_size, mutation_prob, stocks, stock_price, order_len, order_q
             cost_children.append(evaluate_csp(mutated_child,stocks, stock_price, order_len, order_q ))
         generations += 1
         
-
         best_child = min(zip(mutated_children,cost_children), key= lambda x: x[1]) # Tuple of participant and cost
         # if the best cost in this batch of children is better than global best -> set global best as best
         if best_child[1] < best_cost:
@@ -231,8 +267,7 @@ def ga_csp_base(pop_size, mutation_prob, stocks, stock_price, order_len, order_q
     print(f'Generations: {generations}')
     return best, best_cost
 
-
-best, best_cost = ga_csp_base(15, 0.4, stocks, stock_price, order_len, order_q, 360)
+best, best_cost = ga_csp_novel(8, 0.8, stocks, stock_price, order_len, order_q, 60)
 print(best)
 print(best_cost)
 
