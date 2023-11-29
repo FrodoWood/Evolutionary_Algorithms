@@ -156,26 +156,39 @@ def generate_random_population(size, stocks, order_len, order_q):
 
 def mutation(solution):
     solution = np.array(solution)
-    for row in solution:
-        # Decreasing random positive element by 1
-        indeces = np.where(row > -1)[0]
-        i = np.random.choice(indeces)
-        # print(f'index of element getting decremented: {i}')
-        prob = 1
-        r = random.random()
-        if r < prob:
-            random_n = random.randint(1,max(order_q))
-        else:
-            random_n = 1
-        row[i] += random_n
+    total_rows = len(solution)
+    row_index = random.randint(0, total_rows - 1)
+    row = solution[row_index]
+    # Increasing random element by random n
+    indeces = np.where(row >= 0)[0]
+    i = np.random.choice(indeces)
+    # print(f'index of element getting decremented: {i}')
+    random_n = random.randint(1,max(row))
+    row[i] += random_n
 
-        # Increasing random element that is not i by 1
-        indeces = np.where(row >= random_n)[0]
-        if len(indeces) > 0:
-            i = np.random.choice(indeces)
-            # print(f'index of element getting incremented: {i}\n')
-        else: print('fsfkasjkdfjskdfjksdjfkj')
-        row[i] -= random_n
+    # Decreasing random element that is bigger than random n
+    indeces = np.where(row >= random_n)[0]
+    if len(indeces) > 0:
+        i = np.random.choice(indeces)
+        # print(f'index of element getting incremented: {i}\n')
+    else: print('--------------------')
+    row[i] -= random_n
+
+    # for row in solution:
+    #     # Increasing random element by random n
+    #     indeces = np.where(row >= 0)[0]
+    #     i = np.random.choice(indeces)
+    #     # print(f'index of element getting decremented: {i}')
+    #     random_n = random.randint(1,max(order_q))
+    #     row[i] += random_n
+
+    #     # Decreasing random element that is bigger than random n
+    #     indeces = np.where(row >= random_n)[0]
+    #     if len(indeces) > 0:
+    #         i = np.random.choice(indeces)
+    #         # print(f'index of element getting incremented: {i}\n')
+    #     else: print('--------------------')
+    #     row[i] -= random_n
     return solution
 
 def tournament_selection(tournament_size, population, pop_size, stocks, stock_price, order_len, order_q):
@@ -241,7 +254,7 @@ def ga_csp_novel(pop_size, mutation_prob, stocks, stock_price, order_len, order_
     start_time = time.time()
     end_time = time.time() + time_limit
     while time.time() < end_time:
-        parents = tournament_selection(3,population, pop_size,stocks, stock_price, order_len, order_q)
+        parents = tournament_selection(2,population, pop_size,stocks, stock_price, order_len, order_q)
         mutated_children = []
         cost_children = []
         for parent in parents:
@@ -263,11 +276,12 @@ def ga_csp_novel(pop_size, mutation_prob, stocks, stock_price, order_len, order_
 
         population = mutated_children
         population.append(best) # ELITISM
+        # population[-1] = best # ELITISM
 
     print(f'Generations: {generations}')
     return best, best_cost
 
-best, best_cost = ga_csp_novel(8, 0.8, stocks, stock_price, order_len, order_q, 60)
+best, best_cost = ga_csp_novel(15, 1, stocks, stock_price, order_len, order_q, 60)
 print(best)
 print(best_cost)
 
@@ -410,5 +424,9 @@ print(best_cost)
 # Problem 1: 4460
 # Problem 1: 4426
 # Problem 1: 4440 Reached local maxima at time 34s in a run of 360s
+# Problem 1: 4456 Reached local maxima at time 29s in a run of 60s pop = 5, mutation = 1
+# Problem 1: 4464 Reached local maxima at time 19s in a run of 60s pop = 15, mutation = 1 tsize = 3
+# Problem 1: 4450 Reached local maxima at time 19s in a run of 60s pop = 15, mutation = 1 tsize = 2
+
 #endregion
 
