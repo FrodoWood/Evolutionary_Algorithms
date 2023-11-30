@@ -45,7 +45,7 @@ def random_solution(order_lengths, order_q, n_stocks):
         solution[index] = activity
     return solution
             
-def evaluate_csp_old(solution, stocks, stock_price, order_len, order_q):
+def evaluate_csp_old(solution, stocks, stock_price, order_len):
     sol_by_stock_len = np.transpose(solution)
     cost = np.zeros(shape= sol_by_stock_len.shape[0])
     for index, stock_len in enumerate(sol_by_stock_len):
@@ -206,7 +206,7 @@ def tournament_selection(tournament_size, population, pop_size, stocks, stock_pr
         for i in range(tournament_size):
             participant = population[random.randint(0,len(population)-1)]
             participants.append(participant)
-            cost.append(evaluate_csp_old(participant,stocks, stock_price, order_len, order_q))
+            cost.append(evaluate_csp(participant,stocks, stock_price, order_len, order_q))
         best = min(zip(participants,cost), key= lambda x: x[1]) # Tuple of participant and cost
         new_pop.append(best[0]) # Adding only the participant to the population
     return np.array(new_pop)
@@ -271,7 +271,7 @@ def ga_csp_novel(pop_size, mutation_prob, stocks, stock_price, order_len, order_
             else: 
                 mutated_child = parent
             mutated_children.append(mutated_child)
-            cost_children.append(evaluate_csp_old(mutated_child,stocks, stock_price, order_len, order_q ))
+            cost_children.append(evaluate_csp(mutated_child,stocks, stock_price, order_len, order_q ))
         generations += 1
         
         best_child = min(zip(mutated_children,cost_children), key= lambda x: x[1]) # Tuple of participant and cost
@@ -285,19 +285,11 @@ def ga_csp_novel(pop_size, mutation_prob, stocks, stock_price, order_len, order_
         # population.append(best) # ELITISM
         # pop_size += 1
         population[-1] = best # ELITISM
-    population.append(best)
-    best = []
-    best_cost = float('inf')
-    for sol in population:
-        sol_cost = evaluate_csp(sol, stocks, stock_price, order_len, order_q)
-        if sol_cost < best_cost:
-            best_cost = sol_cost
-            best = sol
 
     print(f'Generations: {generations}')
     return best, best_cost
 
-best, best_cost = ga_csp_novel(15, 1, stocks, stock_price, order_len, order_q, 20)
+best, best_cost = ga_csp_novel(15, 1, stocks, stock_price, order_len, order_q, 60)
 print(best)
 print(best_cost)
 
