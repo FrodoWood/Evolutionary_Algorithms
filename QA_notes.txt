@@ -16,3 +16,7 @@ Explain the difference in performance between baseline and novel algorithm inste
 
 
 Search for papers on BIN PACKING to understand a better way to decode the last step going from for example {50: [30,30,25,25,20,20,20]} to activties [30,20],[30,20],[25,25], [20]
+
+
+My microsoft to do list:
+https://to-do.microsoft.com/sharing?InvitationToken=HsMPhbjFINID3PSO-G0O0Adk45M73bOb_NXhttasyAvvUjqierXxx8lkdGC4rmWwA 
