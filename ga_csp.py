@@ -4,10 +4,10 @@ import time
 import copy
 import math
 
-stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
-stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
-order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
-order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
+# stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
+# stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
+# order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
+# order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
 
 # stocks = [120, 115, 110, 105, 100]
 # stock_price = [12, 11.5, 11, 10.5, 10]
@@ -19,10 +19,10 @@ order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
 # order_len = [3,4,5,6,7,8,9,10]
 # order_q = [5,2,1,2,4,2,1,3]
 
-# stocks = [50,80,100]
-# stock_price = [100,175,250]
-# order_len = [20,25,30]
-# order_q = [5,7,5]
+stocks = [50,80,100]
+stock_price = [100,175,250]
+order_len = [20,25,30]
+order_q = [5,7,5]
 
 
 
@@ -159,6 +159,24 @@ def generate_random_population(size, stocks, order_len, order_q):
         population.append(random_solution(order_len,order_q,len(stocks)))
     return np.array(population)
 
+def crossover(s1, s2):
+    # part 1 of s1
+    # part 2 of s2
+    # -------------
+    # part 1 of s2
+    # part 2 of s1
+    cut = random.randint(1,len(s1)-1)
+    print(f'cut {cut}')
+    s1_p1 = s1[:cut] 
+    s2_p2 = s2[cut:]
+    s1s2 = np.vstack((s1_p1,s2_p2))
+    s1_p2 = s1[cut:]
+    s2_p1 = s2[:cut]
+    s2s1 = np.vstack((s2_p1,s1_p2))
+    # print(f's1 + s2:\n{s1s2}\n')
+    # print(f's2 + s1:\n{s2s1}')
+    return s1s2, s2s1
+
 def mutation(solution):
     solution = np.array(solution)
     total_rows = len(solution)
@@ -289,9 +307,9 @@ def ga_csp_novel(pop_size, mutation_prob, stocks, stock_price, order_len, order_
     print(f'Generations: {generations}')
     return best, best_cost
 
-best, best_cost = ga_csp_novel(15, 1, stocks, stock_price, order_len, order_q, 60)
-print(best)
-print(best_cost)
+# best, best_cost = ga_csp_novel(15, 1, stocks, stock_price, order_len, order_q, 60)
+# print(best)
+# print(best_cost)
 
 #region Testing
 
@@ -299,8 +317,33 @@ print(best_cost)
 # test = random_csp(stocks, stock_price, order_len, order_q, 2)
 # print(f'Cost: {test[1]}')
 
-# sol = random_solution(order_len,order_q,len(stocks))
-# print(sol)
+# sol1 = random_solution(order_len,order_q,len(stocks))
+# sol2 = random_solution(order_len,order_q,len(stocks))
+# print(sol1)
+# print('\n',sol2)
+# s1, s2 = crossover(sol1, sol2)
+# print(f'crossover s1:\n{s1}\n')
+# print(f'crossover s2:\n{s2}')
+
+# s1 = np.array([[2, 1, 2],
+#                [5, 2, 0],
+#                [3, 0, 2]])
+
+# s2 = np.array([[4, 1, 0],
+#                [7, 0, 0],
+#                [2, 0, 3]])
+
+# cut = random.randint(1,len(order_len)-1)
+# print(f'cut {cut}')
+# s1_p1 = s1[:cut] 
+# s2_p2 = s2[cut:]
+# s1s2 = np.vstack((s1_p1,s2_p2))
+# s1_p2 = s1[cut:]
+# s2_p1 = s2[:cut]
+# s2s1 = np.vstack((s2_p1,s1_p2))
+
+# print(f's1 + s2:\n{s1s2}\n')
+# print(f's2 + s1:\n{s2s1}')
 
 # population = generate_random_population(10, stocks, order_len, order_q)
 # print(population)
