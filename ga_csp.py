@@ -282,7 +282,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         children = []
         # Crossover
         if crossover_prob < random.random():
-            while len(parents) > 0:
+            while len(parents) > 1:
                 pair = parents[:2]
                 parents = parents[2:]
                 s1,s2 = crossover(pair[0], pair[1])
@@ -314,11 +314,21 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         # population.append(best) # ELITISM
         # pop_size += 1
         population[-1] = best # ELITISM
+        # if (generations % 400 == 0):
+        #     # population.append(random_solution(order_len,order_q,len(stocks)))
+        #     # population.append(random_solution(order_len,order_q,len(stocks)))
+        #     pop_size += 1
+        #     print(f'gen: {generations}')
+        #     print(f'pop size: {pop_size}')
+        #     # mutation_prob /= 1.05
+        #     # crossover_prob *= 1.05
+        #     # print(f'mutation prob: {mutation_prob}')
+
 
     print(f'Generations: {generations}')
     return best, best_cost
 
-best, best_cost = ga_csp_novel(30,0.05, 1, stocks, stock_price, order_len, order_q, 60)
+best, best_cost = ga_csp_novel(20,0.05, 1, stocks, stock_price, order_len, order_q, 60)
 print(best)
 print(best_cost)
 
@@ -494,6 +504,7 @@ print(best_cost)
 # Problem 1: 4393 Reached local maxima at time 39 in a run of 60s pop = 20, mutation = 1, crossover = 0.1 tsize = 2, 1 row mutation
 # Problem 1: 4375 Reached local maxima at time 51 in a run of 60s pop = 20, mutation = 1, crossover = 0.05 tsize = 2, 1 row mutation
 # Problem 1: 4372 Reached local maxima at time 19 in a run of 60s pop = 30, mutation = 1, crossover = 0.05 tsize = 2, 1 row mutation
+# Problem 1: 4372 Reached local maxima at time 9 in a run of 60s pop = 10, mutation = 1, crossover = 0.05 tsize = 2, 1 row mutation, final pop = 26
 
 #endregion
 
