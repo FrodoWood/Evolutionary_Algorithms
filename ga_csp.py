@@ -4,10 +4,10 @@ import time
 import copy
 import math
 
-# stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
-# stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
-# order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
-# order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
+stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
+stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
+order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
+order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
 
 # stocks = [120, 115, 110, 105, 100]
 # stock_price = [12, 11.5, 11, 10.5, 10]
@@ -19,10 +19,10 @@ import math
 # order_len = [3,4,5,6,7,8,9,10]
 # order_q = [5,2,1,2,4,2,1,3]
 
-stocks = [50,80,100]
-stock_price = [100,175,250]
-order_len = [20,25,30]
-order_q = [5,7,5]
+# stocks = [50,80,100]
+# stock_price = [100,175,250]
+# order_len = [20,25,30]
+# order_q = [5,7,5]
 
 
 
@@ -152,7 +152,6 @@ def best_solution(population, stocks, stock_price, order_len, order_q):
     for person in population:
         cost.append(evaluate_csp(person, stocks, stock_price, order_len, order_q))
 
-
 def generate_random_population(size, stocks, order_len, order_q):
     population = []
     for _ in range(size):
@@ -166,7 +165,7 @@ def crossover(s1, s2):
     # part 1 of s2
     # part 2 of s1
     cut = random.randint(1,len(s1)-1)
-    print(f'cut {cut}')
+    # print(f'cut {cut}')
     s1_p1 = s1[:cut] 
     s2_p2 = s2[cut:]
     s1s2 = np.vstack((s1_p1,s2_p2))
@@ -267,7 +266,7 @@ def ga_csp_base(pop_size, mutation_prob, stocks, stock_price, order_len, order_q
     print(f'Generations: {generations}')
     return best, best_cost
 
-def ga_csp_novel(pop_size, mutation_prob, stocks, stock_price, order_len, order_q, time_limit):
+def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, order_len, order_q, time_limit):
     # 1 generate random population
     # 2 select parents
     # 3 apply mutation
@@ -280,14 +279,26 @@ def ga_csp_novel(pop_size, mutation_prob, stocks, stock_price, order_len, order_
     end_time = time.time() + time_limit
     while time.time() < end_time:
         parents = tournament_selection(2,population, pop_size,stocks, stock_price, order_len, order_q)
+        children = []
+        # Crossover
+        if crossover_prob < random.random():
+            while len(parents) > 0:
+                pair = parents[:2]
+                parents = parents[2:]
+                s1,s2 = crossover(pair[0], pair[1])
+                children.append(s1)
+                children.append(s2)
+        else: children = parents
         mutated_children = []
         cost_children = []
-        for parent in parents:
+
+        # Mutation
+        for child in children:
             n = random.random()
             if n < mutation_prob:
-                mutated_child = mutation(parent)
+                mutated_child = mutation(child)
             else: 
-                mutated_child = parent
+                mutated_child = child
             mutated_children.append(mutated_child)
             cost_children.append(evaluate_csp(mutated_child,stocks, stock_price, order_len, order_q ))
         generations += 1
@@ -307,9 +318,9 @@ def ga_csp_novel(pop_size, mutation_prob, stocks, stock_price, order_len, order_
     print(f'Generations: {generations}')
     return best, best_cost
 
-# best, best_cost = ga_csp_novel(15, 1, stocks, stock_price, order_len, order_q, 60)
-# print(best)
-# print(best_cost)
+best, best_cost = ga_csp_novel(30,0.05, 1, stocks, stock_price, order_len, order_q, 60)
+print(best)
+print(best_cost)
 
 #region Testing
 
@@ -480,6 +491,9 @@ def ga_csp_novel(pop_size, mutation_prob, stocks, stock_price, order_len, order_
 # Problem 1: 4450 Reached local maxima at time 19 in a run of 60s pop = 15, mutation = 1 tsize = 2
 # Problem 1: 4392 Reached local maxima at time 59 in a run of 60s pop = 15, mutation = 1 tsize = 2, 1 row mutation, increase pop_size by 1 every generation
 # Problem 1: 4399 Reached local maxima at time 38 in a run of 60s pop = 15, mutation = 1 tsize = 2, 1 row mutation
+# Problem 1: 4393 Reached local maxima at time 39 in a run of 60s pop = 20, mutation = 1, crossover = 0.1 tsize = 2, 1 row mutation
+# Problem 1: 4375 Reached local maxima at time 51 in a run of 60s pop = 20, mutation = 1, crossover = 0.05 tsize = 2, 1 row mutation
+# Problem 1: 4372 Reached local maxima at time 19 in a run of 60s pop = 30, mutation = 1, crossover = 0.05 tsize = 2, 1 row mutation
 
 #endregion
 
