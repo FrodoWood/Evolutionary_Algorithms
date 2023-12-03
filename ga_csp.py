@@ -164,9 +164,18 @@ def generate_population_cost(population, stocks, stock_price, order_len, order_q
         population_cost += evaluate_csp(person,stocks, stock_price, order_len, order_q )
     return population_cost
 
-def roulette_selection(population, stocks, stock_price, order_len, order_q):
-    cumsum_fitness = []
-    selected_index = np.searchsorted(cumsum_fitness, random_value)
+def roulette_selection(population, pop_size, stocks, stock_price, order_len, order_q):
+    pop_cost = generate_population_cost(population, stocks, stock_price, order_len, order_q)
+    pop_fitness = 1/pop_cost
+    norm_pop_fitness = pop_fitness / sum(pop_fitness)
+    cumsum_fitness = np.cumsum(norm_pop_fitness)
+    r = random.random()
+    return_pop = []
+    for _ in range(pop_size):
+        selected_index = np.searchsorted(cumsum_fitness, r)
+        return_pop.append(population[selected_index])
+    return return_pop
+
 
 def crossover(s1, s2):
     # part 1 of s1
@@ -336,8 +345,9 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         population = survivors
         # population.append(best) # ELITISM
         # pop_size += 1
+        # if random.random() < mutation_prob:
         population[-1] = best # ELITISM
-        if (generations % 50 == 0):
+        if (generations % 100 == 0):
         #     # population.append(random_solution(order_len,order_q,len(stocks)))
         #     # population.append(random_solution(order_len,order_q,len(stocks)))
             pop_size -= 2
@@ -353,7 +363,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
     print(f'Population: {pop_size}')
     return best, best_cost
 
-best, best_cost = ga_csp_novel(100, 0.05, 0.6, stocks, stock_price, order_len, order_q, 60)
+best, best_cost = ga_csp_novel(100, 0.05, 0.6, stocks, stock_price, order_len, order_q, 180)
 print(best)
 print(best_cost)
 
@@ -531,6 +541,7 @@ print(best_cost)
 # Problem 1: 4372 time 19 in a run of 60s pop = 30, mutation = 1, crossover = 0.05 tsize = 2, 1 row mutation
 # Problem 1: 4372 time 09 in a run of 60s pop = 10, mutation = 1, crossover = 0.05 tsize = 2, 1 row mutation, final pop = 26
 # Problem 1: 4362 time 42 in a run of 60s pop = 100, mutation = 0.6, crossover = 0.05 tsize = 2, 1-len(sol) row mutation, final pop = 84, evenry 50 gen reduce pop by 2, every 100 gen add 20% new random pop
+# Problem 1: 4356 time 43 in a run of 180s pop = 100, mutation = 0.6, crossover = 0.05 tsize = 2, len(sol) -1 row mutation, final pop = 82, evenry 100 gen reduce pop by 2, every 100 gen add 20% new random pop
 
 #endregion
 
