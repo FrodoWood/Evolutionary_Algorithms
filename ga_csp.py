@@ -159,23 +159,41 @@ def generate_random_population(size, stocks, order_len, order_q):
     return np.array(population)
 
 def generate_population_cost(population, stocks, stock_price, order_len, order_q ):
-    population_cost = 0
+    population_cost = []
     for person in population:
-        population_cost += evaluate_csp(person,stocks, stock_price, order_len, order_q )
+        population_cost.append(evaluate_csp(person,stocks, stock_price, order_len, order_q ))
     return population_cost
 
-def roulette_selection(population, pop_size, stocks, stock_price, order_len, order_q):
-    pop_cost = generate_population_cost(population, stocks, stock_price, order_len, order_q)
-    pop_fitness = 1/pop_cost
+def roulette_selection(population, pop_cost, pop_size, exponent, stocks, stock_price, order_len, order_q):
+    pop_fitness = np.array(pop_cost)
+    # average_cost = sum(pop_fitness)/len(population)
+    pop_fitness = 1/pop_fitness
+    pop_fitness = np.power(pop_fitness, exponent)
+    # pop_fitness = np.log2(pop_fitness)
     norm_pop_fitness = pop_fitness / sum(pop_fitness)
     cumsum_fitness = np.cumsum(norm_pop_fitness)
-    r = random.random()
-    return_pop = []
-    for _ in range(pop_size):
-        selected_index = np.searchsorted(cumsum_fitness, r)
-        return_pop.append(population[selected_index])
-    return return_pop
 
+    return_pop = []
+    return_cost = []
+    list_of_selected_indeces = []
+
+    while len(return_pop) < pop_size:
+        r = random.random()
+        selected_index = np.searchsorted(cumsum_fitness, r)
+        # print(selected_index)
+        # print(f'average cost: {average_cost}')
+        # print(pop_cost[selected_index])
+        if selected_index in list_of_selected_indeces:
+            continue
+        list_of_selected_indeces.append(selected_index)
+        selected_sol = population[selected_index]
+        selected_sol_cost = pop_cost[selected_index]
+
+        return_pop.append(selected_sol)
+        return_cost.append(selected_sol_cost)
+
+    # print(return_pop[0])
+    return np.array(return_pop), np.array(return_cost)
 
 def crossover(s1, s2):
     # part 1 of s1
@@ -198,14 +216,14 @@ def crossover(s1, s2):
 def mutation(solution):
     solution = np.array(solution)
     total_rows = len(solution)
-    for _ in range(random.randint(1, len(solution)-1)):
+    for _ in range(random.randint(1, len(solution) -1 )):
         row_index = random.randint(0, total_rows - 1)
         row = solution[row_index]
         # Increasing random element by random n
         indeces = np.where(row >= 0)[0]
         i = np.random.choice(indeces)
         # print(f'index of element getting decremented: {i}')
-        random_n = random.randint(1,max(row))
+        random_n = random.randint(0,max(row))
         row[i] += random_n
 
         # Decreasing random element that is bigger than random n
@@ -234,18 +252,23 @@ def mutation(solution):
     #     row[i] -= random_n
     return solution
 
-def tournament_selection(tournament_size, population, pop_size, stocks, stock_price, order_len, order_q):
+def tournament_selection(tournament_size, population, pop_cost, pop_size, stocks, stock_price, order_len, order_q):
     new_pop = []
+    new_pop_cost = []
     while len(new_pop) < pop_size:
         participants = []
         cost = []
-        for i in range(tournament_size):
-            participant = population[random.randint(0,len(population)-1)]
+        for _ in range(tournament_size):
+            selected_index = random.randint(0,len(population)-1)
+            participant = population[selected_index]
             participants.append(participant)
-            cost.append(evaluate_csp(participant,stocks, stock_price, order_len, order_q))
+            cost.append(pop_cost[selected_index])
+
         best = min(zip(participants,cost), key= lambda x: x[1]) # Tuple of participant and cost
         new_pop.append(best[0]) # Adding only the participant to the population
-    return np.array(new_pop)
+        new_pop_cost.append(best[1]) # Adding only the participant to the population
+
+    return np.array(new_pop), np.array(new_pop_cost)
 
 def ga_csp_base(pop_size, mutation_prob, stocks, stock_price, order_len, order_q, time_limit):
     # 1 generate random population
@@ -291,33 +314,50 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
     # 3 apply mutation
     # ---repeat
     population = generate_random_population(pop_size, stocks, order_len, order_q)
+    population_cost = generate_population_cost(population,stocks, stock_price, order_len, order_q )
     best = []
     best_cost = float('inf')
     generations = 0
     start_time = time.time()
     end_time = time.time() + time_limit
+
+    parents_cost = []
+    mutated_children_cost = []
+
     while time.time() < end_time:
         # Parent selection
-        parents = tournament_selection(2,population, pop_size,stocks, stock_price, order_len, order_q)
-        # if 0.05 < random.random():
+        if random.random() < 0:
+            roulette_result = roulette_selection(population, population_cost, pop_size, 20,stocks, stock_price, order_len, order_q)
+        else: 
+            roulette_result = tournament_selection(2,population, population_cost, pop_size,stocks, stock_price, order_len, order_q)
+
+        # Calculate all parents cost here->
+        parents = roulette_result[0]
+        parents_cost = roulette_result[1]
+
+        # Add random individuals to the population to increase diversity
         if generations % 100 == 0:
             random_population = generate_random_population(int(pop_size*0.2),stocks, order_len, order_q)
+            random_pop_cost = generate_population_cost(random_population, stocks, stock_price, order_len, order_q)
             parents = np.vstack((parents, random_population))
-        children = []
+            parents_cost = np.concatenate((parents_cost, random_pop_cost))
+
         # Crossover
+        children = []
+        parents_copy = parents
         if crossover_prob < random.random():
-            while len(parents) > 1:
-                pair = parents[:2]
-                parents = parents[2:]
+            while len(parents_copy) > 1:
+                pair = parents_copy[:2]
+                parents_copy = parents_copy[2:]
                 s1,s2 = crossover(pair[0], pair[1])
                 children.append(s1)
                 children.append(s2)
-        else: children = parents
+        else: children = parents_copy
 
 
+        # Mutation
         mutated_children = []
         cost_children = []
-        # Mutation
         for child in children:
             n = random.random()
             if n < mutation_prob:
@@ -325,38 +365,52 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
             else: 
                 mutated_child = child
             mutated_children.append(mutated_child)
-            cost_children.append(evaluate_csp(mutated_child,stocks, stock_price, order_len, order_q ))
-        generations += 1
-        
-        best_child = min(zip(mutated_children,cost_children), key= lambda x: x[1]) # Tuple of participant and cost
+
+
+        # Calculate all mutated children cost here->
+        mutated_children = np.array(mutated_children)
+        mutated_children_cost = generate_population_cost(mutated_children, stocks, stock_price, order_len, order_q )
+
+        # Survivor selection - Combine parents and mutated children, apply selection
+        children_and_parents = np.vstack((parents, mutated_children))
+        children_and_parents_cost = list(parents_cost) + mutated_children_cost
+
+        if random.random() < 0:
+            survivors = roulette_selection(children_and_parents, children_and_parents_cost, pop_size, 20, stocks, stock_price, order_len, order_q)
+        else: 
+            survivors = tournament_selection(2, children_and_parents, children_and_parents_cost, pop_size, stocks, stock_price, order_len, order_q)
+
+
+        # Set the survivors as the population
+        population = survivors[0]
+        population_cost = survivors[1]
+
+        # Setting the best solution
+        gen_best_sol = min(zip(population,population_cost), key= lambda x: x[1]) # Tuple of participant and cost
+        # print(gen_best_sol[1])
         # if the best cost in this batch of children is better than global best -> set global best as best
-        if best_child[1] < best_cost:
-            best = best_child[0]
-            best_cost = best_child[1]
+        if gen_best_sol[1] < best_cost:
+            best = gen_best_sol[0]
+            best_cost = gen_best_sol[1]
             print(f'new best found at time {round(time.time() - start_time)}: {best_cost}')
 
-        # Survivor selection
-        # Combine mutated children and population into a single population
-        # Apply tournament selection to create survivors
-        # Add best to the survivors
-        # Set the survivors as the population
-        children_and_parents = np.vstack((parents, mutated_children))
-        survivors = tournament_selection(2, children_and_parents, pop_size, stocks, stock_price, order_len, order_q)
-        population = survivors
+        # Elitism
+        population[-1] = best
+        population_cost[-1] = best_cost
         # population.append(best) # ELITISM
-        # pop_size += 1
-        # if random.random() < mutation_prob:
-        population[-1] = best # ELITISM
-        if (generations % 100 == 0):
-        #     # population.append(random_solution(order_len,order_q,len(stocks)))
-        #     # population.append(random_solution(order_len,order_q,len(stocks)))
-            pop_size -= 2
-            if pop_size < 10 : pop_size = 10
-        #     print(f'gen: {generations}')
-        #     print(f'pop size: {pop_size}')
-        #     # mutation_prob /= 1.05
-        #     # crossover_prob *= 1.05
-        #     # print(f'mutation prob: {mutation_prob}')
+        
+        # Decrease population size
+        # if (generations % 100 == 0):
+        # #     # population.append(random_solution(order_len,order_q,len(stocks)))
+        # #     # population.append(random_solution(order_len,order_q,len(stocks)))
+        #     pop_size -= 2
+        #     if pop_size < 10 : pop_size = 10
+        # #     print(f'gen: {generations}')
+        # #     print(f'pop size: {pop_size}')
+        # #     # mutation_prob /= 1.05
+        # #     # crossover_prob *= 1.05
+        # #     # print(f'mutation prob: {mutation_prob}')
+        generations += 1
 
 
     print(f'Generations: {generations}')
@@ -366,6 +420,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
 best, best_cost = ga_csp_novel(100, 0.05, 0.6, stocks, stock_price, order_len, order_q, 180)
 print(best)
 print(best_cost)
+
 
 #region Testing
 
@@ -400,6 +455,31 @@ print(best_cost)
 
 # print(f's1 + s2:\n{s1s2}\n')
 # print(f's2 + s1:\n{s2s1}')
+
+# Hardcoded solution test
+# sol1 = np.array(
+# [[ 0,  0,  0,  0,  0,  0,  0,  2],
+#  [ 0,  0,  0,  0,  0,  1,  1,  2],
+#  [ 1,  1,  1,  0,  0,  0,  0,  1],
+#  [ 15,  0,  0, 0,  0,  0,  0,  0],
+#  [ 0,  6,  0,  0,  0,  0,  0,  0],
+#  [ 0, 11,  0,  0,  0,  0,  0,  0],
+#  [ 1,  1,  0,  4,  0,  0,  0,  0],
+#  [ 0,  0,  0,  0, 15,  0,  0,  0],
+#  [ 0,  1,  0,  0, 12,  0,  0,  0],
+#  [ 0,  0,  0,  0,  5,  0,  0,  0],
+#  [ 0,  1,  1,  0,  0,  0,  0,  0],
+#  [ 0,  0,  7,  2,  0,  0,  0,  0],
+#  [ 0,  1,  0,  0,  0,  2,  0,  0],
+#  [ 0,  0,  2,  0,  2,  1,  1,  0],
+#  [ 0,  0,  1,  0,  6,  0,  0,  3],
+#  [ 1,  0,  1,  0,  0,  2,  0,  0],
+#  [ 0,  1,  1,  0,  1,  2,  0,  3],
+#  [ 1,  0,  0,  1,  0,  0,  0,  1]])
+# print(sol1)
+# sol1_cost = evaluate_csp(sol1, stocks, stock_price, order_len, order_q)
+# print(f'cost: {sol1_cost}')
+###################
 
 # population = generate_random_population(10, stocks, order_len, order_q)
 # print(population)
