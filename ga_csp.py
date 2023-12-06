@@ -342,13 +342,6 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         parents_cost = roulette_result[1]
         # print(f'Parents after parent selection: {len(parents)}')
 
-        # Add random individuals to the population to increase diversity
-        if generations % 50 == 0:
-            random_population = generate_random_population(int(pop_size * 8),stocks, order_len, order_q)
-            random_pop_cost = generate_population_cost(random_population, stocks, stock_price, order_len, order_q)
-            parents = random_population
-            parents_cost = random_pop_cost
-
         # Crossover
         children = []
         parents_copy = parents
@@ -394,30 +387,42 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         # population_cost = survivors[1]
 
         # BCSO - Back Controlled Selection Operator Test
-        bcso_survivors = []
-        bcso_survivors_cost = []
-        if len(cost_history) >= 5:
-        # if len(cost_history) >= 2 and ((end_time - time.time()) / (end_time- start_time) < 0.8):
-            while len(bcso_survivors) < pop_size:
-                selected_index = random.randint(0, len(children_and_parents) - 1)
-                sol = children_and_parents[selected_index]
-                sol_cost = children_and_parents_cost[selected_index]
-                # If the current solution's cost is less than the average of the last generation it will be selected
-                if sol_cost <= cost_history[-5]:
-                    bcso_survivors.append(sol)
-                    bcso_survivors_cost.append(sol_cost)
-                else: 
-                    continue
-            population = bcso_survivors
-            population_cost = bcso_survivors_cost
-        else:
-            population = mutated_children
-            population_cost = mutated_children_cost
+        # bcso_survivors = []
+        # bcso_survivors_cost = []
+        # if len(cost_history) >= 5:
+        # # if len(cost_history) >= 2 and ((end_time - time.time()) / (end_time- start_time) < 0.8):
+        #     while len(bcso_survivors) < pop_size:
+        #         selected_index = random.randint(0, len(children_and_parents) - 1)
+        #         sol = children_and_parents[selected_index]
+        #         sol_cost = children_and_parents_cost[selected_index]
+        #         # If the current solution's cost is less than the average of the last generation it will be selected
+        #         if sol_cost <= cost_history[-5]:
+        #             bcso_survivors.append(sol)
+        #             bcso_survivors_cost.append(sol_cost)
+        #         else: 
+        #             continue
+        #     population = bcso_survivors
+        #     population_cost = bcso_survivors_cost
+        # else:
+        #     population = mutated_children
+        #     population_cost = mutated_children_cost
         #######
 
         # Top survivors selection
-        sorted_indices = np.argsort(children_and_parents_cost)
-        print(sorted_indices)
+        sorted_population_with_cost = sorted(zip(children_and_parents, children_and_parents_cost), key= lambda x: x[1])
+        sorted_population, sorted_population_cost = zip(*sorted_population_with_cost)
+        sorted_population = list(sorted_population)
+        sorted_population_cost = list(sorted_population_cost)
+        population = sorted_population[:pop_size]
+        population_cost = sorted_population_cost[:pop_size]
+
+        # Add random individuals to the population to increase diversity
+        if generations % 5 == 0:
+            random_population = generate_random_population(int(pop_size * 0.8),stocks, order_len, order_q)
+            random_pop_cost = generate_population_cost(random_population, stocks, stock_price, order_len, order_q)
+            population += list(random_population)
+            population_cost += list(random_pop_cost)
+            # print(f'Just added new random solutions to the population now of size: {len(population)}') #Bcomment
 
         # Setting the best solution
         gen_best_sol = min(zip(population,population_cost), key= lambda x: x[1]) # Tuple of participant and cost
@@ -431,7 +436,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         # Elitism
         population[-1] = best
         population_cost[-1] = best_cost
-        print(f'Population after survivor selection: {len(population)}')
+        # print(f'Population after survivor selection: {len(population)}')
         average_cost = sum(population_cost) / len(population_cost)
         cost_history.append(average_cost)
         # print(f'Average population cost: {sum(population_cost) / len(population_cost)}')
