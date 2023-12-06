@@ -4,15 +4,15 @@ import time
 import copy
 import math
 
-stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
-stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
-order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
-order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
+# stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
+# stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
+# order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
+# order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
 
-# stocks = [120, 115, 110, 105, 100]
-# stock_price = [12, 11.5, 11, 10.5, 10]
-# order_len = [21, 22, 24, 25, 27, 29, 30, 31, 32, 33, 34, 35, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 59, 60, 61, 63, 65, 66, 67]
-# order_q = [13, 15, 7, 5, 9, 9, 3, 15, 18, 17, 4, 17, 20, 9, 4, 19, 4, 12, 15, 3, 20, 14, 15, 6, 4, 7, 5, 19, 19, 6, 3, 7, 20, 5, 10, 17]
+stocks = [120, 115, 110, 105, 100]
+stock_price = [12, 11.5, 11, 10.5, 10]
+order_len = [21, 22, 24, 25, 27, 29, 30, 31, 32, 33, 34, 35, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 59, 60, 61, 63, 65, 66, 67]
+order_q = [13, 15, 7, 5, 9, 9, 3, 15, 18, 17, 4, 17, 20, 9, 4, 19, 4, 12, 15, 3, 20, 14, 15, 6, 4, 7, 5, 19, 19, 6, 3, 7, 20, 5, 10, 17]
 
 # stocks = [10,13,15]
 # stock_price = [100,130,150]
@@ -316,7 +316,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
     population_cost = generate_population_cost(population,stocks, stock_price, order_len, order_q )
     best = []
     best_cost = float('inf')
-    generations = 0
+    generations = 1
     start_time = time.time()
     end_time = time.time() + time_limit
 
@@ -340,6 +340,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         # Calculate all parents cost here->
         parents = roulette_result[0]
         parents_cost = roulette_result[1]
+        # print(f'Parents after parent selection: {len(parents)}')
 
         # Add random individuals to the population to increase diversity
         if generations % 50 == 0:
@@ -351,7 +352,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         # Crossover
         children = []
         parents_copy = parents
-        if crossover_prob < random.random():
+        if random.random() < crossover_prob:
             while len(parents_copy) > 1:
                 pair = parents_copy[:2]
                 parents_copy = parents_copy[2:]
@@ -359,7 +360,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
                 children.append(s1)
                 children.append(s2)
         else: children = parents_copy
-
+        # print(f'Children after crossover: {len(children)}')
         # Mutation
         mutated_children = []
         cost_children = []
@@ -370,15 +371,16 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
             else: 
                 mutated_child = child
             mutated_children.append(mutated_child)
+        # print(f'Children after mutation: {len(mutated_children)}') #Bcomment
 
         # Calculate all mutated children cost here->
         mutated_children = np.array(mutated_children)
         mutated_children_cost = generate_population_cost(mutated_children, stocks, stock_price, order_len, order_q )
-
+        # print(len(mutated_children))
         # Survivor selection - Combine parents and mutated children, apply selection
         children_and_parents = np.vstack((parents, mutated_children, population))
         children_and_parents_cost = list(parents_cost) + mutated_children_cost + list(population_cost)
-
+        # print(f'Number of children + parents + population: {len(children_and_parents)}') #Bcomment
         # r = random.random()
         # if r < 0.4:
         #     survivors = roulette_selection(children_and_parents, children_and_parents_cost, pop_size, 20, stocks, stock_price, order_len, order_q)
@@ -413,7 +415,9 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
             population_cost = mutated_children_cost
         #######
 
-        
+        # Top survivors selection
+        sorted_indices = np.argsort(children_and_parents_cost)
+        print(sorted_indices)
 
         # Setting the best solution
         gen_best_sol = min(zip(population,population_cost), key= lambda x: x[1]) # Tuple of participant and cost
@@ -427,7 +431,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         # Elitism
         population[-1] = best
         population_cost[-1] = best_cost
-
+        print(f'Population after survivor selection: {len(population)}')
         average_cost = sum(population_cost) / len(population_cost)
         cost_history.append(average_cost)
         # print(f'Average population cost: {sum(population_cost) / len(population_cost)}')
@@ -450,7 +454,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
     print(f'Population: {pop_size}')
     return best, best_cost
 
-best, best_cost = ga_csp_novel(30, 0, 1, stocks, stock_price, order_len, order_q, 60)
+best, best_cost = ga_csp_novel(30, 0.05, 1, stocks, stock_price, order_len, order_q, 60)
 print(best)
 print(best_cost)
 
