@@ -27,6 +27,7 @@ order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
 
 
 def random_solution(order_lengths, order_q, n):
+    # ORIGINAL produces zeros towards the end of the rows
     # solution = np.zeros(shape=(len(order_lengths), n))
     # for index, order_len in enumerate(order_lengths):
     #     quantity = order_q[index]
@@ -43,13 +44,35 @@ def random_solution(order_lengths, order_q, n):
     #         activity[i] = random_q
     #         quantity_left -= random_q
     #     solution[index] = activity
+    
+    # SLOW TECHNIQUE but works
+    # solution = np.zeros(shape=(len(order_lengths), n))
+    # for index, order_len in enumerate(order_lengths):
+    #     q = order_q[index]
+    #     row = np.random.randint(0,q+1, size= n )
+    #     while np.sum(row) != q:
+    #         row = np.random.randint(0, q + 1, size = n)
+    #     solution[index] = row
+    
+    # THIRD 
     solution = np.zeros(shape=(len(order_lengths), n))
     for index, order_len in enumerate(order_lengths):
         q = order_q[index]
-        row = np.random.randint(0,q+1, size= n )
-        while np.sum(row) != q:
-            row = np.random.randint(0, q + 1, size = n)
+        segments = np.random.randint(0, q, size = n )
+        segments.sort()
+
+        diff = np.diff(segments)
+        row = np.append(diff, q - segments[-1])
+        error = q - sum(row)
+        selected_index = random.randint(0,len(row) -1)
+        row[selected_index] += error
+
+        np.random.shuffle(row)
+
+        if sum(row) != q:
+            print('Sum of row is not equal to Q!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
         solution[index] = row
+
         
     return solution
 
@@ -427,12 +450,12 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         population_cost = sorted_population_cost[:pop_size]
 
         # Add random individuals to the population to increase diversity
-        # if generations % 20 == 0:
-        #     random_population = generate_random_population(int(pop_size * 1),stocks, order_len, order_q)
-        #     random_pop_cost = generate_population_cost(random_population, stocks, stock_price, order_len, order_q)
-        #     population += list(random_population)
-        #     population_cost += list(random_pop_cost)
-            # print(f'Just added new random solutions to the population now of size: {len(population)}') #Bcomment
+        if generations % 60 == 0:
+            random_population = generate_random_population(int(pop_size * 1),stocks, order_len, order_q)
+            random_pop_cost = generate_population_cost(random_population, stocks, stock_price, order_len, order_q)
+            population += list(random_population)
+            population_cost += list(random_pop_cost)
+            print(f'Just added new random solutions to the population now of size: {len(population)}') #Bcomment
 
         # Setting the best solution
         gen_best_sol = min(zip(population,population_cost), key= lambda x: x[1]) # Tuple of participant and cost
@@ -469,7 +492,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
     print(f'Population: {pop_size}')
     return best, best_cost
 
-best, best_cost = ga_csp_novel(30, 0, 1, stocks, stock_price, order_len, order_q, 60)
+best, best_cost = ga_csp_novel(100, 0, 1, stocks, stock_price, order_len, order_q, 60)
 print(best)
 print(best_cost)
 
@@ -689,6 +712,7 @@ print(best_cost)
 # Problem 1: 4096 time 161 in a run of 180s pop = 300, mutation = 1, crossover = 0 tsize = 2, len(sol) -1 row mutation, final pop = 280, evenry 100 gen reduce pop by 2, every 50 gen add 80% new random pop, BCSO survivor selection
 # Problem 1: 4111 time 51 in a run of 60s pop = 300, mutation = 1, crossover = 0 tsize = 2, len(sol) -1 row mutation, final pop = 294, evenry 100 gen reduce pop by 2, every 50 gen add 80% new random pop, BCSO survivor selection after 60 gens
 # Problem 1: 4107 time 60 in a run of 60s pop = 300, mutation = 1, crossover = 0 tsize = 2, len(sol) -1 row mutation, final pop = 294, evenry 100 gen reduce pop by 2, every 50 gen add 80% new random pop, BCSO survivor selection after 60 gens, BCSO survivors < best 5th cost history
+# Problem 1: 4169 time 60 in a run of 60s pop = 10, mutation = 1, crossover = 1 tsize = 2, len(sol) -1 row mutation, loop-based slow random initialisation
 
 # Problem 2: 1796.0 time 55 in a run of 60s pop = 30, mutation = 1, crossover = 0 tsize = 2, len(sol) -1 row mutation, final pop = 18, evenry 100 gen reduce pop by 2, every 50 gen add 80% new random pop, BCSO survivor selection after 60 gens, BCSO survivors < best 5th cost history
 # Problem 2: 1797.0 time 59 in a run of 60s pop = 30, mutation = 0.4, crossover = 0 tsize = 2, len(sol) -1 row mutation, final pop = 18, evenry 100 gen reduce pop by 2, every 50 gen add 80% new random pop, BCSO survivor selection after 60 gens, BCSO survivors < best 5th cost history
