@@ -45,7 +45,7 @@ def random_solution(order_lengths, order_q, n_stocks):
         solution[index] = activity
     return solution
             
-def evaluate_csp_old(solution, stocks, stock_price, order_len):
+def evaluate_csp_old(solution, stocks, stock_price, order_len, order_q):
     sol_by_stock_len = np.transpose(solution)
     cost = np.zeros(shape= sol_by_stock_len.shape[0])
     for index, stock_len in enumerate(sol_by_stock_len):
@@ -187,8 +187,8 @@ def roulette_selection(population, pop_cost, pop_size, exponent, stocks, stock_p
         # print(selected_index)
         # print(f'average cost: {average_cost}')
         # print(pop_cost[selected_index])
-        if selected_index in list_of_selected_indeces:
-            continue
+        # if selected_index in list_of_selected_indeces:
+        #     continue
         list_of_selected_indeces.append(selected_index)
         selected_sol = population[selected_index]
         selected_sol_cost = pop_cost[selected_index]
@@ -220,14 +220,14 @@ def crossover(s1, s2):
 def mutation(solution):
     solution = np.array(solution)
     total_rows = len(solution)
-    for _ in range(random.randint(1, len(solution) -1 )):
-        row_index = random.randint(0, total_rows - 1)
+    for _ in range(random.randint(1, len(solution) -1 )): # Pick how many rows to mutate
+        row_index = random.randint(0, total_rows - 1) # Pick a row to mutate
         row = solution[row_index]
         # Increasing random element by random n
         indeces = np.where(row >= 0)[0]
         i = np.random.choice(indeces)
         # print(f'index of element getting decremented: {i}')
-        random_n = random.randint(0,max(row))
+        random_n = random.randint(1,max(row)) # Quantity value to add/subtract
         row[i] += random_n
 
         # Decreasing random element that is bigger than random n
@@ -238,22 +238,7 @@ def mutation(solution):
         else: print('--------------------')
         row[i] -= random_n
         solution[row_index] = row
-
-    # for row in solution:
-    #     # Increasing random element by random n
-    #     indeces = np.where(row >= 0)[0]
-    #     i = np.random.choice(indeces)
-    #     # print(f'index of element getting decremented: {i}')
-    #     random_n = random.randint(1,max(order_q))
-    #     row[i] += random_n
-
-    #     # Decreasing random element that is bigger than random n
-    #     indeces = np.where(row >= random_n)[0]
-    #     if len(indeces) > 0:
-    #         i = np.random.choice(indeces)
-    #         # print(f'index of element getting incremented: {i}\n')
-    #     else: print('--------------------')
-    #     row[i] -= random_n
+        
     return solution
 
 def tournament_selection(tournament_size, population, pop_cost, pop_size, stocks, stock_price, order_len, order_q):
@@ -273,6 +258,16 @@ def tournament_selection(tournament_size, population, pop_cost, pop_size, stocks
         new_pop_cost.append(best[1]) # Adding only the participant to the population
 
     return np.array(new_pop), np.array(new_pop_cost)
+
+def random_selection(population, pop_cost, pop_size):
+    new_pop = []
+    new_pop_cost = []
+    while len(new_pop) < pop_size:
+        selected_index = random.randint(0,len(population)-1)
+        new_pop.append(population[selected_index])
+        new_pop_cost.append(pop_cost[selected_index])
+    return np.array(new_pop), np.array(new_pop_cost)
+
 
 def ga_csp_base(pop_size, mutation_prob, stocks, stock_price, order_len, order_q, time_limit):
     # 1 generate random population
@@ -334,21 +329,24 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
 
     while time.time() < end_time:
         # Parent selection
-        if random.random() < 1:
-            roulette_result = roulette_selection(population, population_cost, pop_size, 20,stocks, stock_price, order_len, order_q)
-        else: 
+        r = random.random()
+        if r < 0:
+            roulette_result = roulette_selection(population, population_cost, pop_size, 2,stocks, stock_price, order_len, order_q)
+        elif r < 0.9: 
             roulette_result = tournament_selection(2,population, population_cost, pop_size,stocks, stock_price, order_len, order_q)
+        else:
+            roulette_result = random_selection(population, population_cost, pop_size)
 
         # Calculate all parents cost here->
         parents = roulette_result[0]
         parents_cost = roulette_result[1]
 
         # Add random individuals to the population to increase diversity
-        if generations % 100 == 0:
-            random_population = generate_random_population(int(pop_size*0.2),stocks, order_len, order_q)
+        if generations % 50 == 0:
+            random_population = generate_random_population(int(pop_size * 8),stocks, order_len, order_q)
             random_pop_cost = generate_population_cost(random_population, stocks, stock_price, order_len, order_q)
-            parents = np.vstack((parents, random_population))
-            parents_cost = np.concatenate((parents_cost, random_pop_cost))
+            parents = random_population
+            parents_cost = random_pop_cost
 
         # Crossover
         children = []
@@ -362,7 +360,6 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
                 children.append(s2)
         else: children = parents_copy
 
-
         # Mutation
         mutated_children = []
         cost_children = []
@@ -374,20 +371,21 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
                 mutated_child = child
             mutated_children.append(mutated_child)
 
-
         # Calculate all mutated children cost here->
         mutated_children = np.array(mutated_children)
         mutated_children_cost = generate_population_cost(mutated_children, stocks, stock_price, order_len, order_q )
 
         # Survivor selection - Combine parents and mutated children, apply selection
-        children_and_parents = np.vstack((parents, mutated_children))
-        children_and_parents_cost = list(parents_cost) + mutated_children_cost
+        children_and_parents = np.vstack((parents, mutated_children, population))
+        children_and_parents_cost = list(parents_cost) + mutated_children_cost + list(population_cost)
 
-        # if random.random() < 1:
+        # r = random.random()
+        # if r < 0.4:
         #     survivors = roulette_selection(children_and_parents, children_and_parents_cost, pop_size, 20, stocks, stock_price, order_len, order_q)
-        # else: 
+        # elif r < 0.8: 
         #     survivors = tournament_selection(2, children_and_parents, children_and_parents_cost, pop_size, stocks, stock_price, order_len, order_q)
-
+        # else:
+        #     survivors = random_selection(children_and_parents, children_and_parents_cost, pop_size)
 
         # # Set the survivors as the population
         # population = survivors[0]
@@ -396,23 +394,26 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         # BCSO - Back Controlled Selection Operator Test
         bcso_survivors = []
         bcso_survivors_cost = []
-        if len(cost_history) >= 1:
+        if len(cost_history) >= 5:
+        # if len(cost_history) >= 2 and ((end_time - time.time()) / (end_time- start_time) < 0.8):
             while len(bcso_survivors) < pop_size:
                 selected_index = random.randint(0, len(children_and_parents) - 1)
                 sol = children_and_parents[selected_index]
                 sol_cost = children_and_parents_cost[selected_index]
                 # If the current solution's cost is less than the average of the last generation it will be selected
-                if sol_cost <= cost_history[-1]:
+                if sol_cost <= cost_history[-5]:
                     bcso_survivors.append(sol)
                     bcso_survivors_cost.append(sol_cost)
-                else: continue
+                else: 
+                    continue
             population = bcso_survivors
             population_cost = bcso_survivors_cost
         else:
             population = mutated_children
             population_cost = mutated_children_cost
-
         #######
+
+        
 
         # Setting the best solution
         gen_best_sol = min(zip(population,population_cost), key= lambda x: x[1]) # Tuple of participant and cost
@@ -432,22 +433,24 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         # print(f'Average population cost: {sum(population_cost) / len(population_cost)}')
 
         # Decrease population size
-        if (generations % 100 == 0):
-            pop_size -= 2
-            if pop_size < 10 : pop_size = 10
-        # mutation_prob /= 1.05
+        # if (generations % 10 == 0):
+        #     pop_size -= 4
+        #     if pop_size < 100 : pop_size = 100
+        # mutation_prob /= 1.002
         # crossover_prob *= 1.05
         # mutation_prob = (np.sin(generations) +1) / 2
         # mutation_prob = random.random()
+        # crossover_prob = random.random()
         # print(mutation_prob)
         generations += 1
+        # print(generations)
 
 
     print(f'Generations: {generations}')
     print(f'Population: {pop_size}')
     return best, best_cost
 
-best, best_cost = ga_csp_novel(100, 0, 1, stocks, stock_price, order_len, order_q, 60)
+best, best_cost = ga_csp_novel(30, 0, 1, stocks, stock_price, order_len, order_q, 60)
 print(best)
 print(best_cost)
 
@@ -657,6 +660,15 @@ print(best_cost)
 # Problem 1: 4165 time 41 in a run of 60s pop = 100, mutation = 0.6, crossover = 0.1 tsize = 2, len(sol) -1 row mutation, final pop = 10, evenry 100 gen reduce pop by 6, every 100 gen add 20% new random pop
 # Problem 1: 4156 time 41 in a run of 60s pop = 100, mutation = 0.6, crossover = 0.1 tsize = 2, len(sol) -1 row mutation, final pop = 10, evenry 100 gen reduce pop by 2, every 100 gen add 20% new random pop
 # Problem 1: 4200 time 41 in a run of 60s pop = 100, mutation = 1, crossover = 0.1 tsize = 2, len(sol) -1 row mutation, final pop = 10, evenry 100 gen reduce pop by 2, every 100 gen add 20% new random pop
+# Problem 1: 4145 time 44 in a run of 60s pop = 100, mutation = 1, crossover = 0 tsize = 2, len(sol) -1 row mutation, final pop = 88, evenry 100 gen reduce pop by 2, every 100 gen add 20% new random pop, BCSO
+# Problem 1: 4133 time 96 in a run of 180s pop = 100, mutation = 1, crossover = 0.05 tsize = 2, len(sol) -1 row mutation, final pop = 24, evenry 100 gen reduce pop by 2, every 50 gen add 80% new random pop
+# Problem 1: 4096 time 161 in a run of 180s pop = 300, mutation = 1, crossover = 0 tsize = 2, len(sol) -1 row mutation, final pop = 280, evenry 100 gen reduce pop by 2, every 50 gen add 80% new random pop, BCSO survivor selection
+# Problem 1: 4111 time 51 in a run of 60s pop = 300, mutation = 1, crossover = 0 tsize = 2, len(sol) -1 row mutation, final pop = 294, evenry 100 gen reduce pop by 2, every 50 gen add 80% new random pop, BCSO survivor selection after 60 gens
+# Problem 1: 4107 time 60 in a run of 60s pop = 300, mutation = 1, crossover = 0 tsize = 2, len(sol) -1 row mutation, final pop = 294, evenry 100 gen reduce pop by 2, every 50 gen add 80% new random pop, BCSO survivor selection after 60 gens, BCSO survivors < best 5th cost history
+
+# Problem 2: 1796.0 time 55 in a run of 60s pop = 30, mutation = 1, crossover = 0 tsize = 2, len(sol) -1 row mutation, final pop = 18, evenry 100 gen reduce pop by 2, every 50 gen add 80% new random pop, BCSO survivor selection after 60 gens, BCSO survivors < best 5th cost history
+# Problem 2: 1797.0 time 59 in a run of 60s pop = 30, mutation = 0.4, crossover = 0 tsize = 2, len(sol) -1 row mutation, final pop = 18, evenry 100 gen reduce pop by 2, every 50 gen add 80% new random pop, BCSO survivor selection after 60 gens, BCSO survivors < best 5th cost history
+# Problem 2: 1798.0 time 59 in a run of 60s pop = 30, mutation = 0.4, crossover = 0.05 tsize = 2, len(sol) -1 row mutation, final pop = 18, evenry 100 gen reduce pop by 2, every 50 gen add 80% new random pop, BCSO survivor selection after 60 gens, BCSO survivors < best 5th cost history
 
 #endregion
 
