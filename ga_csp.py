@@ -4,15 +4,15 @@ import time
 import copy
 import math
 
-# stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
-# stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
-# order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
-# order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
+stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
+stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
+order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
+order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
 
-stocks = [120, 115, 110, 105, 100]
-stock_price = [12, 11.5, 11, 10.5, 10]
-order_len = [21, 22, 24, 25, 27, 29, 30, 31, 32, 33, 34, 35, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 59, 60, 61, 63, 65, 66, 67]
-order_q = [13, 15, 7, 5, 9, 9, 3, 15, 18, 17, 4, 17, 20, 9, 4, 19, 4, 12, 15, 3, 20, 14, 15, 6, 4, 7, 5, 19, 19, 6, 3, 7, 20, 5, 10, 17]
+# stocks = [120, 115, 110, 105, 100]
+# stock_price = [12, 11.5, 11, 10.5, 10]
+# order_len = [21, 22, 24, 25, 27, 29, 30, 31, 32, 33, 34, 35, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 59, 60, 61, 63, 65, 66, 67]
+# order_q = [13, 15, 7, 5, 9, 9, 3, 15, 18, 17, 4, 17, 20, 9, 4, 19, 4, 12, 15, 3, 20, 14, 15, 6, 4, 7, 5, 19, 19, 6, 3, 7, 20, 5, 10, 17]
 
 # stocks = [10,13,15]
 # stock_price = [100,130,150]
@@ -26,24 +26,34 @@ order_q = [13, 15, 7, 5, 9, 9, 3, 15, 18, 17, 4, 17, 20, 9, 4, 19, 4, 12, 15, 3,
 
 
 
-def random_solution(order_lengths, order_q, n_stocks):
-    solution = np.zeros(shape=(len(order_lengths), n_stocks))
+def random_solution(order_lengths, order_q, n):
+    # solution = np.zeros(shape=(len(order_lengths), n))
+    # for index, order_len in enumerate(order_lengths):
+    #     quantity = order_q[index]
+    #     quantity_left  = quantity
+    #     activity = np.zeros(shape=(n))
+    #     # print(activity)
+    #     for i in range(n):
+    #         random_q = random.randint(0,quantity_left)
+    #         if sum(activity) == quantity:
+    #             break
+    #         if(i == n-1):
+    #             activity[i] = quantity_left
+    #             break
+    #         activity[i] = random_q
+    #         quantity_left -= random_q
+    #     solution[index] = activity
+    solution = np.zeros(shape=(len(order_lengths), n))
     for index, order_len in enumerate(order_lengths):
-        quantity = order_q[index]
-        quantity_left  = quantity
-        activity = np.zeros(shape=(n_stocks))
-        # print(activity)
-        for i in range(n_stocks):
-            random_q = random.randint(0,quantity_left)
-            if sum(activity) == quantity:
-                break
-            if(i == n_stocks-1):
-                activity[i] = quantity_left
-                break
-            activity[i] = random_q
-            quantity_left -= random_q
-        solution[index] = activity
+        q = order_q[index]
+        row = np.random.randint(0,q+1, size= n )
+        while np.sum(row) != q:
+            row = np.random.randint(0, q + 1, size = n)
+        solution[index] = row
+        
     return solution
+
+        
             
 def evaluate_csp_old(solution, stocks, stock_price, order_len, order_q):
     sol_by_stock_len = np.transpose(solution)
@@ -330,9 +340,9 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
     while time.time() < end_time:
         # Parent selection
         r = random.random()
-        if r < 0:
+        if r < 0.3:
             roulette_result = roulette_selection(population, population_cost, pop_size, 2,stocks, stock_price, order_len, order_q)
-        elif r < 0.9: 
+        elif r < 0.3: 
             roulette_result = tournament_selection(2,population, population_cost, pop_size,stocks, stock_price, order_len, order_q)
         else:
             roulette_result = random_selection(population, population_cost, pop_size)
@@ -347,8 +357,8 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         parents_copy = parents
         if random.random() < crossover_prob:
             while len(parents_copy) > 1:
-                pair = parents_copy[:2]
-                parents_copy = parents_copy[2:]
+                pair = parents_copy[-2:]
+                parents_copy = parents_copy[:-2]
                 s1,s2 = crossover(pair[0], pair[1])
                 children.append(s1)
                 children.append(s2)
@@ -417,11 +427,11 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         population_cost = sorted_population_cost[:pop_size]
 
         # Add random individuals to the population to increase diversity
-        if generations % 5 == 0:
-            random_population = generate_random_population(int(pop_size * 0.8),stocks, order_len, order_q)
-            random_pop_cost = generate_population_cost(random_population, stocks, stock_price, order_len, order_q)
-            population += list(random_population)
-            population_cost += list(random_pop_cost)
+        # if generations % 20 == 0:
+        #     random_population = generate_random_population(int(pop_size * 1),stocks, order_len, order_q)
+        #     random_pop_cost = generate_population_cost(random_population, stocks, stock_price, order_len, order_q)
+        #     population += list(random_population)
+        #     population_cost += list(random_pop_cost)
             # print(f'Just added new random solutions to the population now of size: {len(population)}') #Bcomment
 
         # Setting the best solution
@@ -459,7 +469,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
     print(f'Population: {pop_size}')
     return best, best_cost
 
-best, best_cost = ga_csp_novel(30, 0.05, 1, stocks, stock_price, order_len, order_q, 60)
+best, best_cost = ga_csp_novel(30, 0, 1, stocks, stock_price, order_len, order_q, 60)
 print(best)
 print(best_cost)
 
@@ -471,8 +481,13 @@ print(best_cost)
 # print(f'Cost: {test[1]}')
 
 # sol1 = random_solution(order_len,order_q,len(stocks))
-# sol2 = random_solution(order_len,order_q,len(stocks))
 # print(sol1)
+
+
+
+
+
+# sol2 = random_solution(order_len,order_q,len(stocks))
 # print('\n',sol2)
 # s1, s2 = crossover(sol1, sol2)
 # print(f'crossover s1:\n{s1}\n')
