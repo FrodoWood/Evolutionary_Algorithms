@@ -277,6 +277,25 @@ def mutation(solution):
         
     return solution
 
+def column_mutation(solution):
+    solution = np.array(solution)
+    n_rows, n_cols = solution.shape
+
+    # Get 2 random colums to swap
+    random_indices_col = np.arange(n_cols)
+    np.random.shuffle(random_indices_col)
+    random_indices_col = random_indices_col[:2]
+    col_index_1 = random_indices_col[0]
+    col_index_2 = random_indices_col[1]
+
+    # Get random row to apply mutation
+    row_index = random.randint(0,len(solution)-1)
+
+    solution[row_index, [col_index_1, col_index_2]] = solution[row_index, [col_index_2, col_index_1]]
+    # print()
+    # print(solution)
+    return solution
+
 def tournament_selection(tournament_size, population, pop_cost, pop_size, stocks, stock_price, order_len, order_q):
     new_pop = []
     new_pop_cost = []
@@ -370,7 +389,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         r = random.random()
         if r < 0:
             roulette_result = roulette_selection(population, population_cost, pop_size, 20,stocks, stock_price, order_len, order_q)
-        elif r < 0.9: 
+        elif r < 0.5: 
             roulette_result = tournament_selection(4,population, population_cost, pop_size,stocks, stock_price, order_len, order_q)
         else:
             roulette_result = random_selection(population, population_cost, pop_size)
@@ -456,7 +475,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
 
         # Add random individuals to the population to increase diversity
         if generations % 100 == 0:
-            random_population = generate_random_population(int(pop_size * 0.4),stocks, order_len, order_q)
+            random_population = generate_random_population(int(pop_size * 1),stocks, order_len, order_q)
             random_pop_cost = generate_population_cost(random_population, stocks, stock_price, order_len, order_q)
             population += list(random_population)
             population_cost += list(random_pop_cost)
@@ -490,9 +509,9 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         #     population_cost += list(random_pop_cost)
 
         # Decrease population size
-        # if (generations % 10 == 0):
-        #     pop_size -= 4
-        #     if pop_size < 100 : pop_size = 100
+        if (generations % 10 == 0):
+            pop_size += 2
+            if pop_size > 100 : pop_size = 100
         # mutation_prob /= 1.002
         # crossover_prob *= 1.05
         # mutation_prob = (np.sin(generations) +1) / 2
@@ -520,6 +539,7 @@ print(best_cost)
 
 # sol1 = random_solution(order_len,order_q,len(stocks))
 # print(sol1)
+# column_mutation(sol1)
 
 
 
