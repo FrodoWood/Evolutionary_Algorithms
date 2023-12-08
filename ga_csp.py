@@ -3,7 +3,7 @@ import numpy as np
 import time
 import copy
 import math
-
+import csv
 stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
 stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
 order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
@@ -260,38 +260,19 @@ def mutation(solution):
     # Increasing random element by random n
     indeces = np.arange(cols)
     i = np.random.choice(indeces)
-    # print(f'chosen index: {i}')
     random_n = random.randint(1,max(order_q)) # Quantity value to add/subtract
-    # print(f'random n:{random_n}')
 
-
-    # for _ in range(random.randint(1,rows)): # Pick how many rows to mutate
-    #     row_index = random.randint(0, rows - 1) # Pick a row to mutate
-    #     # print(f'row index: {row_index}')
-    #     row = solution[row_index]
-    #     # print(f'index of element getting decremented: {i}')
     for row_index, row in enumerate(solution):
+        if random.random() < 0.1:
+            continue
         row[i] += random_n
 
-        # Decreasing random element that is bigger than random n
-
-        # Ensure non-negative values in the row
-        # row[row < 0] = 0
-
-        # Normalize the row to maintain the total quantity
         desired_sum = order_q[row_index]
-        # print(f'desired sum: {desired_sum}')
 
-        # row = solution[row_index] / np.sum(solution[row_index]) * desired_sum
         row = row/sum(row) * desired_sum
         rounded_row= np.round(row).astype(int)
-       
-        # indeces = np.where(row >= random_n)[0]
-        # if len(indeces) > 0:
-        #     i = np.random.choice(indeces)
-        #     # print(f'index of element getting incremented: {i}\n')
-        # else: print('--------------------')
-        # row[i] -= random_n
+
+        # ERROR correction
         error = desired_sum - sum(rounded_row)
         rounded_row[i] += error
         if sum(rounded_row) != desired_sum:
@@ -384,8 +365,13 @@ def ga_csp_base(pop_size, mutation_prob, stocks, stock_price, order_len, order_q
     generations = 0
     start_time = time.time()
     end_time = time.time() + time_limit
+    data = []
+
+    header = ['generation', 'best cost']
     while time.time() < end_time:
-        tournament_result = tournament_selection(3,population, pop_cost, pop_size,stocks, stock_price, order_len, order_q)
+        gen_data = []
+
+        tournament_result = tournament_selection(5,population, pop_cost, pop_size,stocks, stock_price, order_len, order_q)
         parents = tournament_result[0]
         parents_cost = tournament_result[1]
 
@@ -394,12 +380,11 @@ def ga_csp_base(pop_size, mutation_prob, stocks, stock_price, order_len, order_q
         for parent in parents:
             n = random.random()
             if n < mutation_prob:
-                mutated_child = mutation(parent)
+                mutated_child = column_mutation(parent)
             else: 
                 mutated_child = parent
             mutated_children.append(mutated_child)
-            cost_children.append(evaluate_csp(mutated_child,stocks, stock_price, order_len, order_q ))
-        generations += 1
+        cost_children = generate_population_cost(mutated_children, stocks, stock_price, order_len, order_q)
 
         best_child = min(zip(mutated_children,cost_children), key= lambda x: x[1]) # Tuple of participant and cost
         # if the best cost in this batch of children is better than global best -> set global best as best
@@ -407,9 +392,22 @@ def ga_csp_base(pop_size, mutation_prob, stocks, stock_price, order_len, order_q
             best = best_child[0]
             best_cost = best_child[1]
             print(f'new best found at time {round(time.time() - start_time)}: {best_cost}')
+            gen_data.append(generations)
+            gen_data.append(best_cost)
+            data.append(gen_data)
 
         population = mutated_children
         # population.append(best) # ELITISM
+        generations += 1
+
+
+    # --------------Export data--------------------------
+    with open('baseline_data.csv', 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        
+        for row in data:
+            writer.writerow(row)
 
     print(f'Generations: {generations}')
     return best, best_cost
@@ -419,7 +417,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
     # 2 select parents
     # 3 apply mutation
     # ---repeat
-    population = generate_random_population(pop_size*5, stocks, order_len, order_q)
+    population = generate_random_population(pop_size, stocks, order_len, order_q)
     population_cost = generate_population_cost(population,stocks, stock_price, order_len, order_q )
     best = []
     best_cost = float('inf')
@@ -445,10 +443,10 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
     while time.time() < end_time:
         # Parent selection
         r = random.random()
-        if r < 0:
-            roulette_result = roulette_selection(population, population_cost, pop_size, 20,stocks, stock_price, order_len, order_q)
+        if r < 1:
+            roulette_result = roulette_selection(population, population_cost, pop_size, 5,stocks, stock_price, order_len, order_q)
         elif r < 0.9: 
-            roulette_result = tournament_selection(10,population, population_cost, pop_size,stocks, stock_price, order_len, order_q)
+            roulette_result = tournament_selection(2,population, population_cost, pop_size,stocks, stock_price, order_len, order_q)
         else:
             roulette_result = random_selection(population, population_cost, pop_size)
 
@@ -476,13 +474,12 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         
         # Mutation
         mutated_children = []
-        cost_children = []
         for child in children:
             n = random.random()
             if n < mutation_prob:
                 if n < 0.2:
                     mutated_child = column_mutation(child)
-                elif n < 0.5:
+                elif n < 0.7:
                     mutated_child = row_mutation(child)
                 else:
                     mutated_child = mutation(child)
@@ -499,21 +496,24 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         children_and_parents = np.vstack((mutated_children, population))
         children_and_parents_cost = mutated_children_cost + list(population_cost)
         # print(f'Number of children + parents + population: {len(children_and_parents)}') #Bcomment
-        # population = children_and_parents[pop_size:-pop_size]
-        # population_cost = children_and_parents_cost[pop_size:-pop_size]
-        # r = random.random()
-        # if r < 0.4:
-        #     survivors = roulette_selection(children_and_parents, children_and_parents_cost, pop_size, 20, stocks, stock_price, order_len, order_q)
-        # elif r < 0.8: 
-        #     survivors = tournament_selection(2, children_and_parents, children_and_parents_cost, pop_size, stocks, stock_price, order_len, order_q)
-        # else:
-        #     survivors = random_selection(children_and_parents, children_and_parents_cost, pop_size)
 
-        # # Set the survivors as the population
-        # population = survivors[0]
-        # population_cost = survivors[1]
+        # Replacement SURVIVOR SELECTION
+        # population = mutated_children
+        # population_cost = mutated_children_cost
 
-        # BCSO - Back Controlled Selection Operator Test
+        # Roulette - Tournament - Random SURVIVOR SELECTION
+        r = random.random()
+        if r < 0.5:
+            survivors = roulette_selection(children_and_parents, children_and_parents_cost, pop_size, 6, stocks, stock_price, order_len, order_q)
+        elif r < 0.8: 
+            survivors = tournament_selection(2, children_and_parents, children_and_parents_cost, pop_size, stocks, stock_price, order_len, order_q)
+        else:
+            survivors = random_selection(children_and_parents, children_and_parents_cost, pop_size)
+        # Set the survivors as the population
+        population = survivors[0]
+        population_cost = survivors[1]
+
+        # BCSO - Back Controlled Selection Operator Test SURVIVOR SELECTION
         # bcso_survivors = []
         # bcso_survivors_cost = []
         # if len(cost_history) >= 60:
@@ -535,16 +535,16 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
         #     population_cost = mutated_children_cost
         #######
 
-        # Top survivors selection
-        sorted_population_with_cost = sorted(zip(children_and_parents, children_and_parents_cost), key= lambda x: x[1])
-        sorted_population, sorted_population_cost = zip(*sorted_population_with_cost)
-        sorted_population = list(sorted_population)
-        sorted_population_cost = list(sorted_population_cost)
-        s = int(pop_size*1.1)
-        population = sorted_population[:s]
-        population_cost = sorted_population_cost[:s]
-        population += sorted_population[-pop_size:]
-        population_cost += sorted_population_cost[-pop_size:]
+        # Top n SURVIVOR SELECTION
+        # sorted_population_with_cost = sorted(zip(children_and_parents, children_and_parents_cost), key= lambda x: x[1])
+        # sorted_population, sorted_population_cost = zip(*sorted_population_with_cost)
+        # sorted_population = list(sorted_population)
+        # sorted_population_cost = list(sorted_population_cost)
+        # s = int(pop_size* 1.1)
+        # population = sorted_population[:s]
+        # population_cost = sorted_population_cost[:s]
+        # population += sorted_population[-pop_size:]
+        # population_cost += sorted_population_cost[-pop_size:]
 
         # Add random individuals to the population to increase diversity
         # if generations % 20 == 0:
@@ -569,30 +569,30 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
             print(f'new best found at time {round(time.time() - start_time)}: {best_cost} pop-size: {pop_size}, unique:{n_unique}, mutation: {mutation_prob}, cross:{crossover_prob}, len population: {len(population)}')
 
         # Elitism
-        # population[-1] = best
-        # population_cost[-1] = best_cost
+        population[-1] = best
+        population_cost[-1] = best_cost
         # print(f'Population after survivor selection: {len(population)}')
         average_cost = sum(population_cost) / len(population_cost)
         cost_history.append(best_cost)
         average_cost_history.append(average_cost)
 
         # Do something everytime the best cost doesn't improve for n generations
-        if len(cost_history) > 20 and cost_history[-1] == cost_history[-20]:
+        if len(cost_history) > 5 and cost_history[-1] == average_cost_history[-5]:
                 # mutation_index = (mutation_index + 1) % len(mutation_probs)
                 # mutation_prob = mutation_probs[mutation_index]
                 # crossover_index = (crossover_index + 1) % len(crossover_probs)
                 # crossover_prob = crossover_probs[crossover_index]
                 # print(f'Picked new mutation prob of {mutation_probs[mutation_index]}')
                 # print(f'Picked new mutation prob of {crossover_probs[crossover_index]}')
-                if generations % 20 == 0:
+                if generations % 10 == 0:
                     population = generate_random_population(pop_size, stocks, order_len, order_q)
                     population_cost = generate_population_cost(population, stocks, stock_price, order_len, order_q)
 
-                pop_size -= int(pop_size/10)
-                pop_size = max(pop_size,20)
-        else:
-                pop_size += int(pop_size/10)
-                pop_size = min(pop_size,200)
+        #         pop_size += int(pop_size/10)
+        #         pop_size = min(pop_size,100)
+        # else:
+        #         pop_size -= int(pop_size/10)
+        #         pop_size = max(pop_size,20)
 
         generations += 1
         # print(generations)
@@ -604,8 +604,8 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, stocks, stock_price, or
 
 #------------------------------------------------------------------------------------------------------------@@
 
-# best, best_cost = ga_csp_base(10, 1, stocks, stock_price, order_len, order_q, 60)
-best, best_cost = ga_csp_novel(200, 0.1, 1, stocks, stock_price, order_len, order_q, 60)
+# best, best_cost = ga_csp_base(10, 1, stocks, stock_price, order_len, order_q, 10)
+best, best_cost = ga_csp_novel(5, 0.1, 1, stocks, stock_price, order_len, order_q, 25)
 print(best)
 print(best_cost)
 
