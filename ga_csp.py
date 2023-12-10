@@ -4,15 +4,15 @@ import time
 import copy
 import math
 import csv
-stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
-stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
-order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
-order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
+# stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
+# stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
+# order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
+# order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
 
-# stocks = [120, 115, 110, 105, 100]
-# stock_price = [12, 11.5, 11, 10.5, 10]
-# order_len = [21, 22, 24, 25, 27, 29, 30, 31, 32, 33, 34, 35, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 59, 60, 61, 63, 65, 66, 67]
-# order_q = [13, 15, 7, 5, 9, 9, 3, 15, 18, 17, 4, 17, 20, 9, 4, 19, 4, 12, 15, 3, 20, 14, 15, 6, 4, 7, 5, 19, 19, 6, 3, 7, 20, 5, 10, 17]
+stocks = [120, 115, 110, 105, 100]
+stock_price = [12, 11.5, 11, 10.5, 10]
+order_len = [21, 22, 24, 25, 27, 29, 30, 31, 32, 33, 34, 35, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 59, 60, 61, 63, 65, 66, 67]
+order_q = [13, 15, 7, 5, 9, 9, 3, 15, 18, 17, 4, 17, 20, 9, 4, 19, 4, 12, 15, 3, 20, 14, 15, 6, 4, 7, 5, 19, 19, 6, 3, 7, 20, 5, 10, 17]
 
 # stocks = [10,13,15]
 # stock_price = [100,130,150]
@@ -190,7 +190,20 @@ def best_solution(population, stocks, stock_price, order_len, order_q):
     for person in population:
         cost.append(evaluate_csp(person, stocks, stock_price, order_len, order_q))
 
-def generate_random_population(size, stocks, order_len, order_q):
+def generate_random_population_base(size, stocks, order_len, order_q):
+    population = []
+    for _ in range(size):
+        r = random.random()
+        if r < 0:
+            population.append(random_solution_3(order_len,order_q,len(stocks)))
+        elif r < 0:
+            population.append(random_solution_2(order_len,order_q,len(stocks)))
+        else:
+            population.append(random_solution(order_len,order_q,len(stocks)))
+
+    return np.array(population)
+
+def generate_random_population_novel(size, stocks, order_len, order_q):
     population = []
     for _ in range(size):
         r = random.random()
@@ -271,7 +284,7 @@ def crossover_uniform(s1,s2):
     return child
 
 def global_recombination(solution, population):
-    result = np.zeros_like(solution)  # Use np.zeros_like to create an array with the same shape as solution
+    result = np.zeros_like(solution)  #create an array with the same shape as solution
     _, n_cols = solution.shape
     choices = np.arange(len(population))
     random_index = np.random.choice(choices)
@@ -321,7 +334,7 @@ def large_mutation(solution):
         indeces = np.where(row >= 0)[0]
         i = np.random.choice(indeces)
         # print(f'index of element getting decremented: {i}')
-        random_n = random.randint(1,max(order_q)) # Quantity value to add/subtract
+        random_n = random.randint(1,max(order_q)*2) # Quantity value to add/subtract
         row[i] += random_n
 
         # Decreasing random element that is bigger than random n
@@ -439,7 +452,7 @@ def random_selection(population, pop_cost, pop_size):
 
 
 def ga_csp_base(pop_size, mutation_prob, tournament_size, stocks, stock_price, order_len, order_q, time_limit):
-    population = generate_random_population(pop_size, stocks, order_len, order_q)
+    population = generate_random_population_base(pop_size, stocks, order_len, order_q)
     pop_cost = generate_population_cost(population,stocks, stock_price,order_len,order_q)
     best = []
     best_cost = float('inf')
@@ -495,7 +508,7 @@ def ga_csp_base(pop_size, mutation_prob, tournament_size, stocks, stock_price, o
     return best, best_cost, data
 
 def ga_csp_novel(pop_size,crossover_prob, mutation_prob, tournament_size, stocks, stock_price, order_len, order_q, time_limit):
-    population = generate_random_population(pop_size, stocks, order_len, order_q)
+    population = generate_random_population_novel(pop_size*5, stocks, order_len, order_q)
     population_cost = generate_population_cost(population,stocks, stock_price, order_len, order_q )
     gen_best_sol = min(zip(population,population_cost), key= lambda x: x[1]) # Tuple of participant and cost
 
@@ -523,7 +536,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, tournament_size, stocks
 
     # DATA to EXPORT
     data = []
-
+    reset_counter = 0
     while time.time() < end_time:
         elapsed_time = time.time() - start_time
         gen_data = []
@@ -549,29 +562,29 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, tournament_size, stocks
             while len(parents_copy) > 1:
                 pair = parents_copy[-2:]
                 parents_copy = parents_copy[:-2]
-                if random.random() < 1:
-                    s1 = crossover_uniform(pair[0], pair[1])
-                    s2 = crossover_uniform(pair[0], pair[1])
-                    # s1 = global_recombination(pair[0], population)
-                    # s2 = global_recombination(pair[1], population)
+                if random.random() < 0:
+                    # s1 = crossover_uniform(pair[0], pair[1])
+                    # s2 = crossover_uniform(pair[0], pair[1])
+                    s1 = global_recombination(pair[0], population)
+                    s2 = global_recombination(pair[1], population)
                 else:
                     s1,s2 = crossover(pair[0], pair[1])
                 children.append(s1)
                 children.append(s2)
         else: children = parents_copy
-
+        # children += parents_copy
 
         # MUTATION
         mutated_children = []
         for child in children:
             n = random.random()
             if n < mutation_prob:
-                if n < 0:
-                    mutated_child = mutation(child)
+                if n < 1:
+                    mutated_child = large_mutation(child)
                 elif n < 0:
                     mutated_child = row_mutation(child)
-                elif n < .9:
-                    mutated_child = large_mutation(child)
+                elif n < 0:
+                    mutated_child = mutation(child)
                 else:
                     mutated_child = column_mutation(child)
             else: 
@@ -637,8 +650,9 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, tournament_size, stocks
         s = int(pop_size* 1)
         population = sorted_population[:s]
         population_cost = sorted_population_cost[:s]
-        # population += sorted_population[-pop_size:]
-        # population_cost += sorted_population_cost[-pop_size:]
+        # if elapsed_time < time_limit/6:
+        #     population += sorted_population[-pop_size:]
+        #     population_cost += sorted_population_cost[-pop_size:]
         #endregion
 
         #region Add random individuals to the population to increase diversity
@@ -666,8 +680,9 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, tournament_size, stocks
         #endregion ############# Tabu Search ########################
 
         # UNIQUE solutions
-        unique_elements = np.unique(population_cost)
-        n_unique = len(unique_elements)
+        # unique_elements = np.unique(population)
+        # n_unique = len(unique_elements)
+        n_unique = 1
 
         # UPDATE BEST SOLUTION and COST
         gen_best_sol = min(zip(population,population_cost), key= lambda x: x[1]) # Tuple of participant and cost
@@ -705,23 +720,25 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, tournament_size, stocks
         average_cost_history.append(average_cost)
 
         # Do something everytime the best cost doesn't improve for n generations
-        if len(cost_history) > 5 and best_cost == cost_history[-1]:
-        #         # mutation_index = (mutation_index + 1) % len(mutation_probs)
-        #         # mutation_prob = mutation_probs[mutation_index]
-        #         # crossover_index = (crossover_index + 1) % len(crossover_probs)
-        #         # crossover_prob = crossover_probs[crossover_index]
-        #         # print(f'Picked new mutation prob of {mutation_probs[mutation_index]}')
-        #         # print(f'Picked new mutation prob of {crossover_probs[crossover_index]}')
-                if generations % 200 == 0:
-                    print(f'Reset pop')
-                    population = generate_random_population(pop_size, stocks, order_len, order_q)
-                    population_cost = generate_population_cost(population, stocks, stock_price, order_len, order_q)
+        if len(cost_history) > 100 and best_cost == cost_history[-4]:
+            reset_counter += 1
+            # mutation_index = (mutation_index + 1) % len(mutation_probs)
+            # mutation_prob = mutation_probs[mutation_index]
+            # crossover_index = (crossover_index + 1) % len(crossover_probs)
+            # crossover_prob = crossover_probs[crossover_index]
+            # print(f'Picked new mutation prob of {mutation_probs[mutation_index]}')
+            # print(f'Picked new mutation prob of {crossover_probs[crossover_index]}')
+            if reset_counter % 30 == 0:
+                print(f'Reset pop')
+                population = generate_random_population_novel(pop_size, stocks, order_len, order_q)
+                population_cost = generate_population_cost(population, stocks, stock_price, order_len, order_q)
 
-        #         pop_size += int(pop_size/10)
-        #         pop_size = min(pop_size,100)
-        # else:
-        #         pop_size -= int(pop_size/10)
-        #         pop_size = max(pop_size,20)
+    #         pop_size += int(pop_size/10)
+    #         pop_size = min(pop_size,100)
+        else:
+            reset_counter = 0
+    #         pop_size -= int(pop_size/10)
+    #         pop_size = max(pop_size,20)
 
         generations += 1
 
@@ -742,7 +759,7 @@ def export_csv(data, header, file_name):
 def run_base_n_times(n, time_limit):
     all_data = []
     for _ in range(n):
-        best, best_cost, data = ga_csp_base(6, 1, 5, stocks, stock_price, order_len, order_q, time_limit)
+        best, best_cost, data = ga_csp_base(5, 1, 5, stocks, stock_price, order_len, order_q, time_limit)
         if n == 1:
             all_data = data
         else:
@@ -756,7 +773,9 @@ def run_novel_n_times(n, time_limit):
         if n == 1:
             all_data = data
         else:
-            all_data.append(data[-1])
+            print(len(data))
+            if len(data) >=1:
+                all_data.append(data[-1])
     return best, best_cost, all_data
 
 
@@ -773,20 +792,20 @@ time_limit = 10
 #------------BASE export-------------------------
 base_header = ['generation', 'time', 'best cost', 'population', 'mutation', 'tournament']
 
-# best, best_cost, data = run_base_n_times(1, 1)
+# best, best_cost, data = run_base_n_times(1, 30)
 # export_csv(data, base_header, 'baseline.csv')
 
-# best, best_cost, data = run_base_n_times(30, 30)
+# best, best_cost, data = run_base_n_times(30, 1)
 # export_csv(data, base_header, 'baseline_n_runs.csv')
 
 
 #------------NOVEL export-------------------------
 novel_header = ['generation', 'time', 'best cost', 'average cost', 'population', 'mutation', 'crossover', 'tournament', 'unique']
 
-best, best_cost, data = run_novel_n_times(1, 60)
+# best, best_cost, data = run_novel_n_times(1, 30)
 # export_csv(data, novel_header, 'novel.csv')
 
-# best, best_cost, data = run_novel_n_times(30, time_limit=2)
+best, best_cost, data = run_novel_n_times(40, 30)
 # export_csv(data, novel_header, 'novel_n_runs.csv')
 
 
@@ -1049,6 +1068,7 @@ best, best_cost, data = run_novel_n_times(1, 60)
 # Problem 1: new best found at time 45: 4022 pop-size: 6, unique:4, mutation: 1, cross:0.1, len population: 12
 # Problem 1: new best found at time 27: 4019 pop-size: 5, unique:2, mutation: 1, cross:0, len population: 5
 # Problem 1: new best found at time 15: 4014 pop-size: 5, unique:2, mutation: 1, cross:0, len population: 5
+# Problem 1: new best found at time 16: 4001 pop-size: 6, unique:1, mutation: 1, cross:0, len population: 6
 
 
 
@@ -1062,6 +1082,6 @@ best, best_cost, data = run_novel_n_times(1, 60)
 # Problem 2: new best found at time 26: 1788.0 pop-size: 6, unique:2, mutation: 1, cross:0, len population: 6
 # Problem 2: new best found at time 27: 1788.0 pop-size: 6, unique:2, mutation: 1, cross:0, len population: 6, random_solution_3
 # Problem 2: new best found at time 26: 1781.5 pop-size: 5, unique:2, mutation: 1, cross:0, len population: 5
-
+# Problem 2: new best found at time 36: 1778 pop-size: 6, unique:1, mutation: 1, cross:0, len population: 6
 #endregion
 
