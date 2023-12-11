@@ -126,8 +126,12 @@ def solution_to_activities(solution, stocks, stock_price, order_len, order_q):
             continue
         activities = [[]]
         index = 0
+        visited = []
         while len(orders) > 0:
             order = orders[index]
+            if order in visited and index != (len(orders)-1):
+                index += 1
+                continue
             # If the current order len + last activity's sum is exactly equal to stock then 
             # it means that I should stop iterating thorugh the orders to check for another order len to add.
             # It also means that I can add en empty activity so that next iteration I don't have to check that same activity again.
@@ -138,6 +142,7 @@ def solution_to_activities(solution, stocks, stock_price, order_len, order_q):
                 if len(orders) > 0:
                     activities.append(activity)
                 index = 0
+                visited = [] #reset the visited since an order just got added
                 continue
             # I know that current order + sum of last activity is not equal to stock length, so check if it's
             # less thank stock length, this means that more orders can be added.
@@ -145,19 +150,22 @@ def solution_to_activities(solution, stocks, stock_price, order_len, order_q):
                 activities[-1].append(order)
                 orders.remove(orders[index])
                 index = 0
+                visited = [] #reset the visited since an order just got added
                 continue
             # The current order len doesn't add up to exactly the stock len and goes over the stock length if added to activity
             else: # sum of last activity + order > stock
+                if order not in visited: visited.append(order)
                 # Continue checking next order len if there's still orders left that maybe could fit until the end of the list
-                if index != (len(orders)-1):
+                if index != (len(orders)-1): # There's still more orders to check in the list
                     index += 1
-                    continue # This doens't work because it doesn't add the original order to a new activity but the one on the current iteration. I need to find a way to remember what the original length was 
+                    continue # Check next order in list
                 else:
                     # Have gone through the entire list without a valid order to add, so add the first order from which I started
                     activity = [orders[0]]
                     orders.remove(orders[0])
                     activities.append(activity)
                     index = 0
+                    visited = [] #reset the visited since an order just got added
                     continue
         dict2[stock] = activities
     # print(dict2)
