@@ -623,8 +623,8 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, tournament_size, stocks
         if r < 0:
             survivors = roulette_selection(children_and_parents, children_and_parents_cost, pop_size, 6, stocks, stock_price, order_len, order_q)
         elif r < 1: 
-            if generations == 1: t = 30
-            else: t = 10
+            if generations == 1: t = 15
+            else: t = 5
             survivors = tournament_selection(t, children_and_parents, children_and_parents_cost, pop_size, stocks, stock_price, order_len, order_q)
         else:
             survivors = random_selection(children_and_parents, children_and_parents_cost, pop_size)
@@ -725,15 +725,15 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, tournament_size, stocks
         #endregion ############# Local Search #########################
 
         # Elitism
-        population[4] = best
-        population_cost[4] = best_cost
+        population[2] = best
+        population_cost[2] = best_cost
         # print(f'Population after survivor selection: {len(population)}')
         average_cost = sum(population_cost) / len(population_cost)
         cost_history.append(best_cost)
         average_cost_history.append(average_cost)
 
         # Do something everytime the best cost doesn't improve for n generations
-        if len(cost_history) > 100 and best_cost == cost_history[-4]:
+        if len(cost_history) > 50 and best_cost == cost_history[-4]:
             reset_counter += 1
             # mutation_index = (mutation_index + 1) % len(mutation_probs)
             # mutation_prob = mutation_probs[mutation_index]
@@ -741,17 +741,17 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, tournament_size, stocks
             # crossover_prob = crossover_probs[crossover_index]
             # print(f'Picked new mutation prob of {mutation_probs[mutation_index]}')
             # print(f'Picked new mutation prob of {crossover_probs[crossover_index]}')
-            if reset_counter % 100 == 0:
+            if reset_counter % 50 == 0:
                 print(f'Reset pop')
                 population = generate_random_population_novel(pop_size, stocks, order_len, order_q)
                 population_cost = generate_population_cost(population, stocks, stock_price, order_len, order_q)
 
-    #         pop_size += int(pop_size/10)
-    #         pop_size = min(pop_size,100)
+            pop_size += 1
+            pop_size = min(pop_size,10)
         else:
             reset_counter = 0
-    #         pop_size -= int(pop_size/10)
-    #         pop_size = max(pop_size,20)
+            pop_size -= 1
+            pop_size = max(pop_size,5)
 
         generations += 1
 
@@ -763,7 +763,7 @@ def ga_csp_novel(pop_size,crossover_prob, mutation_prob, tournament_size, stocks
     return best, best_cost, data
 
 def export_csv(data, header, file_name):
-    with open(file_name, 'w', encoding='UTF8', newline='') as f:
+    with open(file_name, 'a', encoding='UTF8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(header)
             for row in data:
@@ -782,7 +782,7 @@ def run_base_n_times(n, time_limit):
 def run_novel_n_times(n, time_limit):
     all_data = []
     for _ in range(n):
-        best, best_cost, data = ga_csp_novel(10, 0, 1, 2, stocks, stock_price, order_len, order_q, time_limit)
+        best, best_cost, data = ga_csp_novel(5, 0, 1, 2, stocks, stock_price, order_len, order_q, time_limit)
         if n == 1:
             all_data = data
         else:
@@ -819,7 +819,7 @@ novel_header = ['generation', 'time', 'best cost', 'average cost', 'population',
 # export_csv(data, novel_header, 'novel.csv')
 
 best, best_cost, data = run_novel_n_times(40, 30)
-# export_csv(data, novel_header, 'novel_n_runs.csv')
+export_csv(data, novel_header, 'novel_n_runs.csv')
 
 
 
