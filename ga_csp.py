@@ -4,15 +4,15 @@ import time
 import copy
 import math
 import csv
-# stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
-# stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
-# order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
-# order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
+stocks = [4300, 4250, 4150, 3950, 3800, 3700, 3550, 3500]
+stock_price = [86, 85, 83, 79, 68, 66, 64, 63]
+order_len = [2350, 2250, 2200, 2100, 2050, 2000, 1950, 1900, 1850, 1700, 1650, 1350, 1300, 1250, 1200, 1150, 1100, 1050]
+order_q = [2, 4, 4, 15, 6, 11, 6, 15, 13, 5, 2, 9, 3, 6, 10, 4, 8, 3]
 
-stocks = [120, 115, 110, 105, 100]
-stock_price = [12, 11.5, 11, 10.5, 10]
-order_len = [21, 22, 24, 25, 27, 29, 30, 31, 32, 33, 34, 35, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 59, 60, 61, 63, 65, 66, 67]
-order_q = [13, 15, 7, 5, 9, 9, 3, 15, 18, 17, 4, 17, 20, 9, 4, 19, 4, 12, 15, 3, 20, 14, 15, 6, 4, 7, 5, 19, 19, 6, 3, 7, 20, 5, 10, 17]
+# stocks = [120, 115, 110, 105, 100]
+# stock_price = [12, 11.5, 11, 10.5, 10]
+# order_len = [21, 22, 24, 25, 27, 29, 30, 31, 32, 33, 34, 35, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 59, 60, 61, 63, 65, 66, 67]
+# order_q = [13, 15, 7, 5, 9, 9, 3, 15, 18, 17, 4, 17, 20, 9, 4, 19, 4, 12, 15, 3, 20, 14, 15, 6, 4, 7, 5, 19, 19, 6, 3, 7, 20, 5, 10, 17]
 
 # stocks = [10,13,15]
 # stock_price = [100,130,150]
@@ -21,8 +21,8 @@ order_q = [13, 15, 7, 5, 9, 9, 3, 15, 18, 17, 4, 17, 20, 9, 4, 19, 4, 12, 15, 3,
 
 # stocks = [50,80,100]
 # stock_price = [100,175,250]
-# order_len = [20,25,30]
-# order_q = [5,7,5]
+# order_len = [20,25,30,40]
+# order_q = [5,7,5,3]
 
 
 
@@ -224,6 +224,8 @@ def generate_random_population_base(size, stocks, order_len, order_q):
         if r < 0:
             population.append(random_solution_3(order_len,order_q,len(stocks)))
         elif r < 0:
+            population.append(random_solution_4(order_len,order_q,len(stocks)))
+        elif r < 1:
             population.append(random_solution_2(order_len,order_q,len(stocks)))
         else:
             population.append(random_solution(order_len,order_q,len(stocks)))
@@ -239,7 +241,7 @@ def generate_random_population_novel(size, stocks, order_len, order_q):
         elif r < 1:
             population.append(random_solution_4(order_len,order_q,len(stocks)))
         else:
-            population.append(random_solution(order_len,order_q,len(stocks)))
+            population.append(random_solution_2(order_len,order_q,len(stocks)))
 
     return np.array(population)
 
@@ -482,8 +484,8 @@ def random_selection(population, pop_cost, pop_size):
 
 
 def ga_csp_base(pop_size, mutation_prob, tournament_size, stocks, stock_price, order_len, order_q, time_limit):
-    population = generate_random_population_base(pop_size, stocks, order_len, order_q)
-    pop_cost = generate_population_cost(population,stocks, stock_price,order_len,order_q)
+    population = generate_random_population_base(pop_size*5, stocks, order_len, order_q)
+    population_cost = generate_population_cost(population,stocks, stock_price,order_len,order_q)
     best = []
     best_cost = float('inf')
     generations = 0
@@ -497,22 +499,49 @@ def ga_csp_base(pop_size, mutation_prob, tournament_size, stocks, stock_price, o
         elapsed_time = time.time() - start_time
         gen_data = []
 
-        tournament_result = tournament_selection(tournament_size,population, pop_cost, pop_size,stocks, stock_price, order_len, order_q)
-        parents = tournament_result[0]
-        parents_cost = tournament_result[1]
+        # tournament_result = tournament_selection(tournament_size,population, pop_cost, pop_size,stocks, stock_price, order_len, order_q)
+        # parents = tournament_result[0]
+        # parents_cost = tournament_result[1]
 
+        parents = population
+        parents_cost = population_cost
+        scale = np.interp(elapsed_time, [0, time_limit], [1,0.5])
         mutated_children = []
         cost_children = []
         for parent in parents:
             n = random.random()
             if n < mutation_prob:
                 mutated_child = row_mutation(parent)
+                # mutated_child = large_mutation(parent, scale)
             else: 
                 mutated_child = parent
             mutated_children.append(mutated_child)
         cost_children = generate_population_cost(mutated_children, stocks, stock_price, order_len, order_q)
 
-        best_child = min(zip(mutated_children,cost_children), key= lambda x: x[1]) # Tuple of participant and cost
+        # SURVIVOR SELECTION - Combine parents and mutated children, apply selection
+        # children_and_parents = np.vstack((mutated_children, parents))
+        # children_and_parents_cost = cost_children + list(parents_cost)
+
+        #region Tournament - Roulette - Random SURVIVOR SELECTION
+        # r = random.random()
+        # if r < 0:
+        #     survivors = roulette_selection(children_and_parents, children_and_parents_cost, pop_size, 3, stocks, stock_price, order_len, order_q)
+        # elif r < 1: 
+        #     if generations == 1: t = 30
+        #     else: t = 5
+        #     survivors = tournament_selection(t, children_and_parents, children_and_parents_cost, pop_size, stocks, stock_price, order_len, order_q)
+        # else:
+        #     survivors = random_selection(children_and_parents, children_and_parents_cost, pop_size)
+        # # Set the survivors as the population
+        # population = survivors[0]
+        # population_cost = survivors[1]
+        #endregion
+
+        # Don't use for survivor selection testing
+        population = mutated_children
+        population_cost = cost_children
+
+        best_child = min(zip(population,population_cost), key= lambda x: x[1]) # Tuple of participant and cost
         # if the best cost in this batch of children is better than global best -> set global best as best
         if best_child[1] < best_cost:
             best = best_child[0]
@@ -530,8 +559,9 @@ def ga_csp_base(pop_size, mutation_prob, tournament_size, stocks, stock_price, o
             data.append(gen_data)
             # --------------Record data to export----------------
 
-        population = mutated_children
+        # population = mutated_children
         population[-1] = best # ELITISM
+        population_cost[-1] = best_cost
         generations += 1
 
     print(f'Generations: {generations}')
@@ -832,7 +862,7 @@ base_header = ['generation', 'time', 'best cost', 'population', 'mutation', 'tou
 # best, best_cost, data = run_base_n_times(1, 30)
 # export_csv(data, base_header, 'baseline.csv')
 
-# best, best_cost, data = run_base_n_times(30, 1)
+# best, best_cost, data = run_base_n_times(40, 30)
 # export_csv(data, base_header, 'baseline_n_runs.csv')
 
 
